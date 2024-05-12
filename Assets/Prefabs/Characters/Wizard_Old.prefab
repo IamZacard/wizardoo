@@ -160,7 +160,7 @@ BoxCollider2D:
     adaptiveTiling: 0
   m_AutoTiling: 0
   serializedVersion: 2
-  m_Size: {x: 0.7, y: 0.9}
+  m_Size: {x: 0.7, y: 0.7}
   m_EdgeRadius: 0
 --- !u!114 &5772924516956387425
 MonoBehaviour:
@@ -181,6 +181,7 @@ MonoBehaviour:
   groundTileMap: {fileID: 0}
   colissionTileMap: {fileID: 0}
   deathCount: {fileID: 0}
+  stepsCount: {fileID: 0}
 --- !u!95 &896937969420090207
 Animator:
   serializedVersion: 5
@@ -214,7 +215,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4785ebacef46dbc47abc585e8b1850d1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  revealEffect: {fileID: 5402626375564937643, guid: 3842b141f5d5bb746b110407be1b5b76, type: 3}
+  revealEffect: {fileID: 5402626375564937643, guid: 6bc2eac388d61d04e87ff9546b41a9e2, type: 3}
   revealRadius: 2
   maxCastCount: 1
   currentCastCount: 0

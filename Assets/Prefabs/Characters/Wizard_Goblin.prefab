@@ -202,6 +202,7 @@ MonoBehaviour:
   groundTileMap: {fileID: 0}
   colissionTileMap: {fileID: 0}
   deathCount: {fileID: 0}
+  stepsCount: {fileID: 0}
 --- !u!114 &6395563795628387963
 MonoBehaviour:
   m_ObjectHideFlags: 0

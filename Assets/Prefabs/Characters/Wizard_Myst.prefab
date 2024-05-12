@@ -160,7 +160,7 @@ BoxCollider2D:
     adaptiveTiling: 0
   m_AutoTiling: 0
   serializedVersion: 2
-  m_Size: {x: 0.9, y: 0.9}
+  m_Size: {x: 0.7, y: 0.7}
   m_EdgeRadius: 0
 --- !u!95 &3361371852940483052
 Animator:
@@ -202,6 +202,7 @@ MonoBehaviour:
   groundTileMap: {fileID: 0}
   colissionTileMap: {fileID: 0}
   deathCount: {fileID: 0}
+  stepsCount: {fileID: 0}
 --- !u!114 &943908594132768931
 MonoBehaviour:
   m_ObjectHideFlags: 0
