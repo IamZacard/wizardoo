@@ -1,6 +1,7 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.Tilemaps;
+using UnityEngine.SceneManagement;
 
 public class PlayerController : MonoBehaviour
 {
@@ -135,14 +136,14 @@ public class PlayerController : MonoBehaviour
 
     private bool CanMove(Vector2 direction)
     {
-        // Convert the player's potential grid position on the groundTileMap and roomTileMap
+        // Convert the player's potential grid position on the groundTileMap
         Vector3Int groundGridPosition = groundTileMap.WorldToCell(transform.position + (Vector3)direction);
 
         // Check if the ground tile is present and there are no collision tiles on the groundTileMap
         bool canMoveOnGround = groundTileMap.HasTile(groundGridPosition) && !colissionTileMap.HasTile(groundGridPosition);
 
-        // If roomTileMap is not null, check for movement on the roomTileMap
-        if (roomTileMap != null)
+        // If roomTileMap is not null and active, check for movement on the roomTileMap
+        if (roomTileMap != null && roomTileMap.gameObject.activeSelf)
         {
             // Convert the player's potential grid position on the roomTileMap
             Vector3Int roomGridPosition = roomTileMap.WorldToCell(transform.position + (Vector3)direction);
@@ -162,6 +163,7 @@ public class PlayerController : MonoBehaviour
     }
 
 
+
     private void OnCollisionExit2D(Collision2D other)
     {
         rb.velocity = Vector3.zero;
@@ -173,6 +175,9 @@ public class PlayerController : MonoBehaviour
         {
             Destroy(other.gameObject);
             AudioManager.Instance.PlaySound(AudioManager.SoundType.GalePickUp, Random.Range(.1f, 1.5f));
+
+            // Load the mini-game scene
+            //SceneManager.LoadScene("Mini-Game_Scene", LoadSceneMode.Additive);
         }
     }
     public void FlagCell()
