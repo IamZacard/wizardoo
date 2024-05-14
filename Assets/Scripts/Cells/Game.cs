@@ -181,7 +181,7 @@ public class Game : MonoBehaviour
         if (!gameover)
         {            
             Reveal();
-            if (Input.GetMouseButtonDown(1) && (canFlag))
+            if (Input.GetMouseButtonDown(1) && (canFlag) && !gameover && !levelcomplete)
             {
                 Flag();
             }
@@ -348,6 +348,7 @@ public class Game : MonoBehaviour
                 AudioManager.Instance.PlaySound(AudioManager.SoundType.ShuffProc, Random.Range(.9f, 1.1f));
                 cell.flagged = true;
                 flagCount -= 1;
+                CheckWinConditionFlags();
             }
         }
         else

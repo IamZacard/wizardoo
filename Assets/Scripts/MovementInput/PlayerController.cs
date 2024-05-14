@@ -182,7 +182,7 @@ public class PlayerController : MonoBehaviour
     }
     public void FlagCell()
     {
-        if (Input.GetMouseButtonDown(1) && gameRules.flagCount > 0 && gameRules.canFlag && !gameRules.gameover)
+        if (Input.GetMouseButtonDown(1) && gameRules.flagCount > 0 && gameRules.canFlag && !gameRules.gameover && !gameRules.levelcomplete)
         {
             Instantiate(flagEffect, effectPoint.position, Quaternion.identity);
             AudioManager.Instance.PlaySound(AudioManager.SoundType.FlagSpell, Random.Range(.1f,1.5f));
