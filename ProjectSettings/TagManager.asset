@@ -19,6 +19,7 @@ TagManager:
   - Foreground
   - JumpyChest
   - Room
+  - MusicManager
   layers:
   - Default
   - TransparentFX

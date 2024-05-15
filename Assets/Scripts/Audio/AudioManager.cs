@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class AudioManager : MonoBehaviour
 {
@@ -34,8 +36,24 @@ public class AudioManager : MonoBehaviour
     private static AudioManager instance;
     private AudioSource audioSource;
 
+    public Slider musicVolumeSlider;
+    public Slider effectsVolumeSlider;
+
+    // Make sure to plug these in in the inspector.
+    public AudioSource musicPlayer;
+    public AudioSource effectsPlayer;
+
+    public TextMeshProUGUI musicPlayerNumber;
+    public TextMeshProUGUI effectsPlayerNumber;
+
+    private static float volumeVar = 100f;
+
+    public GameObject OptionsPanel;
+
+    //public static AudioManager instance;
+
     [Range(0f, 1f)] // This attribute limits the range of volume between 0 and 1
-    public float volume = .2f; // Default volume value is 1 (maximum)
+    public float volume = 1f; // Default volume value is 1 (maximum)
 
     public static AudioManager Instance
     {
@@ -71,7 +89,60 @@ public class AudioManager : MonoBehaviour
             audioSource = gameObject.AddComponent<AudioSource>();
         }
 
-        AudioManager.Instance.Volume = 0.1f; // Set volume to 50%
+        //AudioManager.Instance.Volume = 0.1f; // Set volume to 50%
+
+        musicVolumeSlider.onValueChanged.AddListener(SetMusicListenerVolume);
+        effectsVolumeSlider.onValueChanged.AddListener(SetEffectsListenerVolume);
+
+        musicPlayer.volume = .5f;
+        effectsPlayer.volume = .5f;
+    }
+
+    private void Update()
+    {
+        musicPlayerNumber.text = (musicPlayer.volume * 100f).ToString();
+        effectsPlayerNumber.text = (effectsPlayer.volume * 100f).ToString();
+
+
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            OptionsPanel.SetActive(false);
+        }
+
+        if (Input.GetKeyDown(KeyCode.P))
+        {
+            if (!OptionsPanel.activeInHierarchy)
+            {
+                OptionsPanel.SetActive(true);
+            }
+            else
+            {
+                OptionsPanel.SetActive(false);
+            }
+        }
+    }
+
+    private void SetMusicListenerVolume(float volume)
+    {
+        musicPlayer.volume = volume / volumeVar;
+    }
+
+    private void SetEffectsListenerVolume(float volume)
+    {
+        effectsPlayer.volume = volume / volumeVar;
+    }
+
+    public void ApplyMusicSettings()
+    {
+        // The volume updates itself through the slider's events, so no need to update 
+        // the volume in this function.
+        SetMusicListenerVolume(volumeVar);
+    }
+
+    public void ApplyEffectsSettings()
+    {
+        // Or this one.
+        SetEffectsListenerVolume(volumeVar);
     }
 
     public void PlaySound(SoundType soundType, float pitch)
@@ -125,5 +196,8 @@ public class AudioManager : MonoBehaviour
     }
 
 
-    
+    public void Options()
+    {
+        OptionsPanel.SetActive(true);
+    }
 }

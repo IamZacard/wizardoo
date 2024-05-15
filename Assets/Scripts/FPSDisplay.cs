@@ -9,7 +9,6 @@ public class FPSDisplay : MonoBehaviour
     private float timeleft; // Left time for current interval
 
     [SerializeField]private TextMeshProUGUI fpsText;
-
     private void Start()
     {
         // Initialize timeleft with updateInterval
@@ -33,6 +32,6 @@ public class FPSDisplay : MonoBehaviour
             timeleft = updateInterval;
             accum = 0.0f;
             frames = 0;
-        }
+        }        
     }
 }

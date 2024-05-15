@@ -107,6 +107,6 @@ public class CharacterSelection : MonoBehaviour
     public void SelectSound()
     {
         AudioManager.Instance.PlaySound(AudioManager.SoundType.CharacterPick, 1f);
-    }
-
+    }    
 }
+
