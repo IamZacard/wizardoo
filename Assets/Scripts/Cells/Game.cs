@@ -285,6 +285,8 @@ public class Game : MonoBehaviour
             cell.flagged = false;
             flagCount += 1;
             UpdateMineFlagText();
+
+            AudioManager.Instance.PlaySound(AudioManager.SoundType.FlagSpell, Random.Range(.1f, 1.5f));
         }
         else // If the cell is not flagged
         {
@@ -294,6 +296,8 @@ public class Game : MonoBehaviour
                 cell.flagged = true;
                 flagCount -= 1;
                 UpdateMineFlagText();
+
+                AudioManager.Instance.PlaySound(AudioManager.SoundType.FlagSpell, Random.Range(.1f, 1.5f));
             }
         }
 

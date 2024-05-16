@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -70,7 +71,7 @@ public class GaleBehaviour : MonoBehaviour
             FlagRandomTrap();
             Instantiate(blastEffect, effectPoint.transform.position, Quaternion.identity);
 
-            AudioManager.Instance.PlaySound(AudioManager.SoundType.GaleBlast, Random.Range(.9f, 1.1f));
+            AudioManager.Instance.PlaySound(AudioManager.SoundType.GaleBlast, UnityEngine.Random.Range(.9f, 1.1f));
 
             Debug.Log("blastEffect!");
 
@@ -120,7 +121,7 @@ public class GaleBehaviour : MonoBehaviour
             // If there are nearby mine positions, randomly select one to flag
             if (nearbyMinePositions.Count > 0)
             {
-                Vector3Int selectedMinePosition = nearbyMinePositions[Random.Range(0, nearbyMinePositions.Count)];
+                Vector3Int selectedMinePosition = nearbyMinePositions[UnityEngine.Random.Range(0, nearbyMinePositions.Count)];
 
                 // Flag the selected mine cell
                 Cell selectedMineCell = gameRules.grid.GetCell(selectedMinePosition.x, selectedMinePosition.y);
@@ -143,27 +144,43 @@ public class GaleBehaviour : MonoBehaviour
 
     public void SpawnItemPrefab()
     {
-        // Check if the dropPrefab array is not empty and the prefab hasn't been spawned yet
+        // Check if the dropPrefab array is not empty
         if (dropPrefab.Length > 0)
         {
             // Get all revealed cell positions on the board
             Vector3Int[] revealedCellPositions = GetRevealedCellPositions();
 
-            // Check if there are any revealed cells available
-            if (revealedCellPositions.Length > 0)
+            // Get the character's current cell position
+            Vector3Int characterCellPosition = Vector3Int.FloorToInt(transform.position);
+
+            // Create a list to hold valid spawn positions
+            List<Vector3Int> validSpawnPositions = new List<Vector3Int>();
+
+            // Iterate through the revealed cell positions
+            foreach (Vector3Int cellPosition in revealedCellPositions)
             {
-                // Select a random revealed cell position
-                Vector3Int randomRevealedCellPosition = revealedCellPositions[Random.Range(0, revealedCellPositions.Length)];
+                // Exclude the character's current cell position
+                if (cellPosition != characterCellPosition)
+                {
+                    validSpawnPositions.Add(cellPosition);
+                }
+            }
+
+            // Check if there are any valid spawn positions available
+            if (validSpawnPositions.Count > 0)
+            {
+                // Select a random valid spawn position
+                Vector3Int randomSpawnPosition = validSpawnPositions[UnityEngine.Random.Range(0, validSpawnPositions.Count)];
 
                 // Get the world position of the selected cell
-                Vector3 cellWorldPosition = board.tilemap.GetCellCenterWorld(randomRevealedCellPosition);
+                Vector3 cellWorldPosition = board.tilemap.GetCellCenterWorld(randomSpawnPosition);
 
-                // Instantiate the randomly selected prefab at the revealed cell position
-                Instantiate(dropPrefab[Random.Range(0, dropPrefab.Length)], cellWorldPosition, Quaternion.identity);
+                // Instantiate the randomly selected prefab at the valid spawn position
+                Instantiate(dropPrefab[UnityEngine.Random.Range(0, dropPrefab.Length)], cellWorldPosition, Quaternion.identity);
             }
             else
             {
-                Debug.LogWarning("No revealed cells available to spawn the prefab!");
+                Debug.LogWarning("No valid cells available to spawn the prefab!");
             }
         }
         else
@@ -171,6 +188,21 @@ public class GaleBehaviour : MonoBehaviour
             Debug.LogWarning("Drop prefab array is empty!");
         }
     }
+
+    private bool IsCellOccupied(Vector3 worldPosition)
+    {
+        // Check for other items in the same cell
+        Collider2D[] colliders = Physics2D.OverlapCircleAll(worldPosition, 0.1f);
+        foreach (Collider2D collider in colliders)
+        {
+            if (collider.CompareTag("GalesDrop"))
+            {
+                return true; // The cell is occupied
+            }
+        }
+        return false; // The cell is not occupied
+    }
+
 
     private Vector3Int[] GetRevealedCellPositions()
     {
@@ -215,7 +247,7 @@ public class GaleBehaviour : MonoBehaviour
 
             charactersText.text = "Shards: " + numOfItems + "/3";
 
-            AudioManager.Instance.PlaySound(AudioManager.SoundType.GalePickUp, Random.Range(.9f, 1.1f));
+            AudioManager.Instance.PlaySound(AudioManager.SoundType.GalePickUp, UnityEngine.Random.Range(.9f, 1.1f));
         }
     }
 

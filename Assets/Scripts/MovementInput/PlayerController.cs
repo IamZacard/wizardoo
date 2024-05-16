@@ -184,8 +184,7 @@ public class PlayerController : MonoBehaviour
     {
         if (Input.GetMouseButtonDown(1) && gameRules.flagCount > 0 && gameRules.canFlag && !gameRules.gameover && !gameRules.levelcomplete)
         {
-            Instantiate(flagEffect, effectPoint.position, Quaternion.identity);
-            AudioManager.Instance.PlaySound(AudioManager.SoundType.FlagSpell, Random.Range(.1f,1.5f));
+            Instantiate(flagEffect, effectPoint.position, Quaternion.identity);            
             // Decrement flag count or update game state as needed
         }
     }
