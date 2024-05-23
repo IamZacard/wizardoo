@@ -309,7 +309,7 @@ public class Game : MonoBehaviour
 
     private void Explode(Cell cell)
     {
-        if (CharacterManager.selectedCharacterIndex == 1 && myst.invincible)
+        if (CharacterManager.selectedCharacterIndex == 1 && myst.invincible) //Mystic
         {
             cell.flagged = true; // Flag the cell
             cell.revealed = true; // Mark the cell as revealed
@@ -317,7 +317,7 @@ public class Game : MonoBehaviour
             flagCount -= 1;
             CheckWinConditionFlags();
         }
-        else if (CharacterManager.selectedCharacterIndex == 4)
+        else if (CharacterManager.selectedCharacterIndex == 4) //Goblin
         {
             // 50% chance to either explode or flag the mine
             if (Random.Range(0, 2) == 0)
@@ -330,6 +330,8 @@ public class Game : MonoBehaviour
                 // Set the mine as exploded
                 cell.exploded = true;
                 cell.revealed = true;
+
+                CheckWinConditionFlags();
 
                 // Reveal all other mines
                 for (int x = 0; x < width; x++)

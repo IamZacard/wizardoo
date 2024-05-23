@@ -178,6 +178,7 @@ MonoBehaviour:
   effectPoint: {fileID: 786327018770038477}
   flagEffect: {fileID: 5402626375564937643, guid: 0d0340ba39bdabe41aadcb3b0533670c, type: 3}
   stepEffect: {fileID: 5402626375564937643, guid: 322962f5f36a0ed41885925ecde01aa7, type: 3}
+  pickUpEffect: {fileID: 2523934970238192594, guid: 9132629e6699aa24ab4c72d72c376eee, type: 3}
   groundTileMap: {fileID: 0}
   colissionTileMap: {fileID: 0}
   deathCount: {fileID: 0}

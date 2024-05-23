@@ -13,6 +13,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private Transform effectPoint;
     [SerializeField] private GameObject flagEffect;
     [SerializeField] private GameObject stepEffect;
+    [SerializeField] private GameObject pickUpEffect;
     [SerializeField] private Tilemap groundTileMap;
     private Tilemap roomTileMap;
     [SerializeField] private Tilemap colissionTileMap;
@@ -174,6 +175,7 @@ public class PlayerController : MonoBehaviour
         if (other.gameObject.CompareTag("JumpyChest"))
         {
             Destroy(other.gameObject);
+            Instantiate(pickUpEffect, effectPoint.position, Quaternion.identity);
             AudioManager.Instance.PlaySound(AudioManager.SoundType.GalePickUp, Random.Range(.1f, 1.5f));
 
             // Load the mini-game scene
