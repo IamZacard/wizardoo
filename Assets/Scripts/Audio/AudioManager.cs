@@ -21,6 +21,7 @@ public class AudioManager : MonoBehaviour
         ShuffExplotion,
         LevelComplete,
         LoseStepOnTrap,
+        BoardRevealSound,
         // Add more sound types as needed
     }
 

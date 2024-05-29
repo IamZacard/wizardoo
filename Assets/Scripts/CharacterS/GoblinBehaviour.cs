@@ -32,6 +32,6 @@ public class GoblinBehaviour : MonoBehaviour
             Debug.LogWarning("TextMeshProUGUI component with the specified tag not found!");
         }
 
-        charactersText.text = "CASINO DAY: flag or die";
+        charactersText.text = "50% to flag trap";
     }
 }

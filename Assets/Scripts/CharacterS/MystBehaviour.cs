@@ -15,6 +15,10 @@ public class MystBehaviour : MonoBehaviour
 
     private Animator anim;
 
+    // Reference to the invincibility effect prefab
+    public GameObject inviEffectPrefab;
+    private GameObject inviEffectInstance;
+
     private void Start()
     {
         // Initialize variables
@@ -70,6 +74,11 @@ public class MystBehaviour : MonoBehaviour
 
                 anim.SetBool("Invincible", false);
                 charactersText.text = "Care! You are not invincible anymore!";
+
+                if (inviEffectInstance != null)
+                {
+                    Destroy(inviEffectInstance);
+                }
             }
         }
 
@@ -85,6 +94,13 @@ public class MystBehaviour : MonoBehaviour
             anim.SetBool("Invincible", true);
             AudioManager.Instance.PlaySound(AudioManager.SoundType.MysticInvincible, 1f);
             charactersText.text = "You are INVINCIBLE NOW!";
+
+            // Instantiate invincibility effect and make it a child of the character
+            if (inviEffectPrefab != null)
+            {
+                inviEffectInstance = Instantiate(inviEffectPrefab, transform);
+                inviEffectInstance.transform.localPosition = Vector3.zero;
+            }
         }
 
         // Check if any of the cancel keys are pressed
@@ -112,5 +128,11 @@ public class MystBehaviour : MonoBehaviour
         abilityUsed = false; // Reset abilityUsed
         anim.SetBool("Invincible", false);
         charactersText.text = "Activate ability to become INVINCIBLE";
+
+        // Destroy invincibility effect if it exists
+        if (inviEffectInstance != null)
+        {
+            Destroy(inviEffectInstance);
+        }
     }
 }

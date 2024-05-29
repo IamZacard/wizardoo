@@ -355,6 +355,7 @@ public class Game : MonoBehaviour
                 cell.flagged = true;
                 flagCount -= 1;
                 CheckWinConditionFlags();
+                CheckWinCondition();
             }
         }
         else
@@ -407,7 +408,7 @@ public class Game : MonoBehaviour
             solvedPanel.SetActive(true);
 
             levelcomplete = true;
-            AudioManager.Instance.PlaySound(AudioManager.SoundType.LevelComplete, Random.Range(.9f, 1.1f));
+            AudioManager.Instance.PlaySound(AudioManager.SoundType.LevelComplete, 1f);
 
             // Flag all the mines
             for (int x = 0; x < width; x++)
@@ -456,7 +457,7 @@ public class Game : MonoBehaviour
         if (allMinesFlagged && !levelcomplete)
         {
             Debug.Log("Winner Miner!");
-            AudioManager.Instance.PlaySound(AudioManager.SoundType.LevelComplete, Random.Range(.9f, 1.1f));
+            AudioManager.Instance.PlaySound(AudioManager.SoundType.LevelComplete, 1f);
             levelcomplete = true;            
             
             magicBlock.SetActive(false);

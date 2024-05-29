@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 3361371852940483052}
   - component: {fileID: 5772924516956387425}
   - component: {fileID: 943908594132768931}
+  - component: {fileID: 3370058283156630162}
   m_Layer: 0
   m_Name: Wizard_Myst
   m_TagString: Player
@@ -218,6 +219,23 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   invincible: 0
   stepsOfInvi: 7
+  inviEffectPrefab: {fileID: 1664128880678831399, guid: dd18ba646399d2844a699bd9af202da4, type: 3}
+--- !u!114 &3370058283156630162
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4670117459594021562}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f0c7991ee25ed314eb85210e2f9620ea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  spherePrefab: {fileID: 7586410756489459092, guid: 7acc1f2a9961f7746b092e2654d1cded, type: 3}
+  radius: 0.2
+  speed: 3
+  noiseIntensity: 0.1
 --- !u!1 &4858516540831861618
 GameObject:
   m_ObjectHideFlags: 0
