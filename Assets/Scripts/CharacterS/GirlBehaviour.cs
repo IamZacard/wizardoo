@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 public class GirlBehaviour : MonoBehaviour
 {
@@ -58,7 +59,7 @@ public class GirlBehaviour : MonoBehaviour
     private void Update()
     {
         // Check if the left mouse button is pressed
-        if (Input.GetMouseButtonDown(0))
+        if (Input.GetMouseButtonDown(0) && !EventSystem.current.IsPointerOverGameObject())
         {
             // Get the world position of the mouse click
             Vector3 worldPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);

@@ -10,6 +10,13 @@ public class BatManager : MonoBehaviour
 
     private void Start()
     {
+        // Check for null or empty arrays to prevent runtime errors
+        if (batPrefab == null || spawnPoints.Length == 0 || targetPoints.Length == 0)
+        {
+            Debug.LogError("BatManager is not properly configured.");
+            return;
+        }
+
         // Start spawning bats
         StartCoroutine(SpawnBatsRoutine());
     }
@@ -32,10 +39,19 @@ public class BatManager : MonoBehaviour
         // Instantiate a bat at the specified spawn point
         GameObject newBat = Instantiate(batPrefab, spawnPoints[spawnPointIndex].position, Quaternion.identity);
 
-        // Get a random target point for the bat to fly towards
-        Transform randomTarget = targetPoints[Random.Range(0, targetPoints.Length)];
+        // Check if the new bat has the Bat component
+        Bat batComponent = newBat.GetComponent<Bat>();
+        if (batComponent != null)
+        {
+            // Get a random target point for the bat to fly towards
+            Transform randomTarget = targetPoints[Random.Range(0, targetPoints.Length)];
 
-        // Set the target point for the bat
-        newBat.GetComponent<Bat>().SetTarget(randomTarget.position);
+            // Set the target point for the bat
+            batComponent.SetTarget(randomTarget.position);
+        }
+        else
+        {
+            Debug.LogError("Spawned bat does not have a Bat component.");
+        }
     }
 }

@@ -39,7 +39,7 @@ public class Game : MonoBehaviour
 
     [Header("Bools")]    
     public bool gameover;
-    public bool levelcomplete = false;
+    public bool levelComplete = false;
     public bool canFlag = false;
     private bool generated;
     private Board board;
@@ -128,7 +128,7 @@ public class Game : MonoBehaviour
         Camera.main.transform.position = new Vector3(width / 2f, height / 2f, -10f);
 
         gameover = false;
-        levelcomplete = false;
+        levelComplete = false;
         generated = false;
 
         grid = new CellGrid(width, height);
@@ -181,7 +181,7 @@ public class Game : MonoBehaviour
         if (!gameover)
         {            
             Reveal();
-            if (Input.GetMouseButtonDown(1) && (canFlag) && !gameover && !levelcomplete)
+            if (Input.GetMouseButtonDown(1) && (canFlag) && !gameover && !levelComplete)
             {
                 Flag();
             }
@@ -401,13 +401,13 @@ public class Game : MonoBehaviour
             }
         }
 
-        if (!levelcomplete)
+        if (!levelComplete)
         {
             Debug.Log("Winner!");
             magicBlock.SetActive(false);
             solvedPanel.SetActive(true);
 
-            levelcomplete = true;
+            levelComplete = true;
             AudioManager.Instance.PlaySound(AudioManager.SoundType.LevelComplete, 1f);
 
             // Flag all the mines
@@ -454,11 +454,11 @@ public class Game : MonoBehaviour
         }
 
         // If all mine cells are correctly flagged, the player wins
-        if (allMinesFlagged && !levelcomplete)
+        if (allMinesFlagged && !levelComplete)
         {
             Debug.Log("Winner Miner!");
             AudioManager.Instance.PlaySound(AudioManager.SoundType.LevelComplete, 1f);
-            levelcomplete = true;            
+            levelComplete = true;            
             
             magicBlock.SetActive(false);
             canFlag = false;

@@ -50,6 +50,7 @@ public class AudioManager : MonoBehaviour
     private static float volumeVar = 100f;
 
     public GameObject OptionsPanel;
+    public GameObject HTPPanel;
 
     //public static AudioManager instance;
 
@@ -119,6 +120,18 @@ public class AudioManager : MonoBehaviour
             else
             {
                 OptionsPanel.SetActive(false);
+            }
+        }
+
+        if (Input.GetKeyDown(KeyCode.L))
+        {
+            if (!HTPPanel.activeInHierarchy)
+            {
+                HTPPanel.SetActive(true);
+            }
+            else
+            {
+                HTPPanel.SetActive(false);
             }
         }
     }
@@ -199,6 +212,29 @@ public class AudioManager : MonoBehaviour
 
     public void Options()
     {
-        OptionsPanel.SetActive(true);
+        if (OptionsPanel.activeSelf)
+        {
+            // If it is active, set it to false
+            OptionsPanel.SetActive(false);
+        }
+        else
+        {
+            // If it is not active, set it to true
+            OptionsPanel.SetActive(true);
+        }
+    }
+
+    public void HowToPlay()
+    {
+        if (HTPPanel.activeSelf)
+        {
+            // If it is active, set it to false
+            HTPPanel.SetActive(false);
+        }
+        else
+        {
+            // If it is not active, set it to true
+            HTPPanel.SetActive(true);
+        }
     }
 }

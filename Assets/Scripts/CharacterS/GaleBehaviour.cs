@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 public class GaleBehaviour : MonoBehaviour
 {
@@ -13,6 +15,10 @@ public class GaleBehaviour : MonoBehaviour
     [SerializeField] private Transform effectPoint;
     public GameObject blastEffect;
     public GameObject[] dropPrefab;
+
+    [SerializeField] private Image spellIcon; // Drag your spell icon Image here in the Inspector
+    public Color readyColor = Color.white; // Bright color when ready
+    public Color notReadyColor = Color.grey; // Grey color when not ready
 
     private TextMeshProUGUI charactersText;
     private Game gameRules; // Reference to the Game script for accessing the tilemap
@@ -53,7 +59,7 @@ public class GaleBehaviour : MonoBehaviour
         }
 
         // Trigger blast effect when conditions are met
-        if (numOfItems >= requirednumOfItems && Input.GetMouseButtonDown(0))
+        if (numOfItems >= requirednumOfItems && Input.GetMouseButtonDown(0) && !EventSystem.current.IsPointerOverGameObject())
         {
             FlagRandomTrap();
             Instantiate(blastEffect, effectPoint.transform.position, Quaternion.identity);
@@ -61,6 +67,9 @@ public class GaleBehaviour : MonoBehaviour
             Debug.Log("blastEffect!");
             gameRules.CheckWinConditionFlags();
         }
+
+        //Spell Icon color
+        UpdateSpellIcon();
     }
 
     private void FlagRandomTrap()
@@ -198,6 +207,18 @@ public class GaleBehaviour : MonoBehaviour
         foreach (GameObject prefab in spawnedPrefabs)
         {
             Destroy(prefab);
+        }
+    }
+
+    void UpdateSpellIcon()
+    {
+        if (numOfItems >= requirednumOfItems)
+        {
+            spellIcon.color = readyColor;
+        }
+        else
+        {
+            spellIcon.color = notReadyColor;
         }
     }
 
