@@ -76,6 +76,7 @@ public class GirlBehaviour : MonoBehaviour
                         // Teleport the girl to the clicked cell
                         transform.position = board.tilemap.GetCellCenterWorld(cellPosition);
                         Instantiate(tpEffect, transform.position, Quaternion.identity);
+                        ScreenShake.Instance.TriggerShake(.05f, .1f);
                         AudioManager.Instance.PlaySound(AudioManager.SoundType.VioletTeleport, Random.Range(.7f, 1f));
                     }
                     else

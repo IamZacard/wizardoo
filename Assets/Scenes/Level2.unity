@@ -561,7 +561,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 89602322}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3e69312decb38164aa7522e78089e738, type: 3}
   m_Name: 
@@ -5182,7 +5182,7 @@ MonoBehaviour:
   lostPanel: {fileID: 480052184}
   solvedPanel: {fileID: 1646758183}
   gameover: 0
-  levelcomplete: 0
+  levelComplete: 0
   canFlag: 0
 --- !u!1 &1578224398
 GameObject:

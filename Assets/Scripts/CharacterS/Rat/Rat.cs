@@ -7,7 +7,6 @@ public class Rat : MonoBehaviour
     public float oscillationFrequency = 2f; // Frequency of the oscillation
     public float oscillationAmplitude = 1f; // Amplitude of the oscillation
     private SpriteRenderer spriteRenderer;
-    private bool isOnBoard = false;
 
     private void Start()
     {
@@ -36,8 +35,9 @@ public class Rat : MonoBehaviour
         // Move towards the target position with oscillation
         transform.position = Vector3.MoveTowards(transform.position, newPosition, movingSpeed * Time.deltaTime);
 
-        // If the rat reaches the target position, destroy itself
-        if (Vector3.Distance(transform.position, targetPosition) < 0.1f)
+        // If the rat reaches the target position within a tolerance, destroy itself
+        if (Vector3.Distance(transform.position, new Vector3(targetPosition.x, transform.position.y, transform.position.z)) < 0.1f &&
+            Mathf.Abs(targetPosition.y - transform.position.y) < 0.1f)
         {
             Destroy(gameObject);
         }
@@ -57,7 +57,6 @@ public class Rat : MonoBehaviour
     {
         if (other.CompareTag("Board"))
         {
-            isOnBoard = true;
             SetAlpha(1); // Set alpha to 1 (visible)
         }
     }
@@ -66,7 +65,6 @@ public class Rat : MonoBehaviour
     {
         if (other.CompareTag("Board"))
         {
-            isOnBoard = false;
             SetAlpha(0); // Set alpha to 0 (invisible)
         }
     }

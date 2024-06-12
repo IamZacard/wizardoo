@@ -15,16 +15,12 @@ public class Game : MonoBehaviour
     [Header("Trap Count")]
     public int trapCount = 4;
 
-    //[Header("PlayerObject")]
-    //[SerializeField] private GameObject player;
     private GameObject player;
 
-    [Header("Player's stats")]
+    [Header("Player's Stats")]
     public Vector2 startPos;
     public float flagCount;
-    //violet
     public int trapCountIncrease = 1;
-    
 
     [Header("Portal Block")]
     [SerializeField] private GameObject magicBlock;
@@ -37,7 +33,7 @@ public class Game : MonoBehaviour
     [SerializeField] private GameObject lostPanel;
     [SerializeField] private GameObject solvedPanel;
 
-    [Header("Bools")]    
+    [Header("Bools")]
     public bool gameover;
     public bool levelComplete = false;
     public bool canFlag = false;
@@ -45,9 +41,8 @@ public class Game : MonoBehaviour
     private Board board;
     public CellGrid grid;
 
-    //myst && gale
     private MystBehaviour myst;
-    private GaleBehaviour gale;    
+    private GaleBehaviour gale;
 
     private void OnValidate()
     {
@@ -57,7 +52,6 @@ public class Game : MonoBehaviour
     private void Awake()
     {
         Application.targetFrameRate = 60;
-
         board = GetComponentInChildren<Board>();
 
         // Update trapCount and flagCount based on selectedCharacterIndex
@@ -68,59 +62,57 @@ public class Game : MonoBehaviour
         }
     }
 
-
     private void Start()
     {
         UpdateMineFlagText();
 
         player = GameObject.FindGameObjectWithTag("Player");
-        Debug.Log("CharacterManager.selectedCharacterIndex: " + CharacterManager.selectedCharacterIndex);
         if (player != null)
         {
-            if (CharacterManager.selectedCharacterIndex == 1)
-            {
-                // Attempt to get the MystBehaviour component
-                myst = player.GetComponent<MystBehaviour>();
-                if (myst != null)
-                {
-                    Debug.Log("Myst object found: " + myst.gameObject.name);
-                }
-                else
-                {
-                    Debug.LogWarning("MystBehaviour not found on player GameObject!");
-                }
-            }
-            else
-            {
-                Debug.LogWarning("CharacterManager.selectedCharacterIndex is not 1.");
-            }
-
-            if (CharacterManager.selectedCharacterIndex == 3)
-            {
-                // Attempt to get the GaleBehaviour component
-                gale = player.GetComponent<GaleBehaviour>();
-                if (myst != null)
-                {
-                    Debug.Log("Gale object found: " + myst.gameObject.name);
-                }
-                else
-                {
-                    Debug.LogWarning("GaleBehaviour not found on player GameObject!");
-                }
-            }
-            else
-            {
-                Debug.LogWarning("CharacterManager.selectedCharacterIndex is not 3.");
-            }
-
+            Debug.Log("Player object found: " + player.name);
+            InitializeCharacter();
             NewGame();
-            Debug.Log("Player object found: " + player.name);            
         }
         else
         {
             Debug.LogWarning("Player GameObject not found!");
         }
     }
+
+    private void InitializeCharacter()
+    {
+        int characterIndex = CharacterManager.selectedCharacterIndex;
+
+        if (characterIndex == 1) //Mystic
+        {
+            myst = player.GetComponent<MystBehaviour>();
+            if (myst != null)
+            {
+                Debug.Log("Myst object found: " + myst.gameObject.name);
+            }
+            else
+            {
+                Debug.LogWarning("MystBehaviour not found on player GameObject!");
+            }
+        }
+        else if (characterIndex == 3) //Goblin
+        {
+            gale = player.GetComponent<GaleBehaviour>();
+            if (gale != null)
+            {
+                Debug.Log("Gale object found: " + gale.gameObject.name);
+            }
+            else
+            {
+                Debug.LogWarning("GaleBehaviour not found on player GameObject!");
+            }
+        }
+        else
+        {
+            Debug.LogWarning("CharacterManager.selectedCharacterIndex is not 1 or 3.");
+        }
+    }
+
     public void NewGame()
     {
         StopAllCoroutines();
@@ -135,7 +127,7 @@ public class Game : MonoBehaviour
         board.Draw(grid);
 
         magicBlock.SetActive(true);
-        player.transform.position = startPos;        
+        player.transform.position = startPos;
 
         flagCount = trapCount;
 
@@ -144,27 +136,12 @@ public class Game : MonoBehaviour
         lostPanel.SetActive(false);
         solvedPanel.SetActive(false);
 
-        // Initialize myst if selectedCharacterIndex is 1 and myst is not already initialized
-        if (CharacterManager.selectedCharacterIndex == 1 && myst == null)
-        {
-            myst = player.GetComponent<MystBehaviour>();
-            if (myst != null)
-            {
-                Debug.Log("MystBehaviour component found on player GameObject.");
-            }
-            else
-            {
-                Debug.LogWarning("MystBehaviour component not found on player GameObject!");
-            }
-        }
-
-        // Reset invincible if myst is initialized
-        if (myst != null)
+        if (myst != null) //Mystic
         {
             myst.invincible = false;
         }
 
-        if(CharacterManager.selectedCharacterIndex == 3)
+        if (gale != null) //Gale
         {
             gale.ResetPrefabNum();
         }
@@ -179,9 +156,9 @@ public class Game : MonoBehaviour
         }
 
         if (!gameover)
-        {            
+        {
             Reveal();
-            if (Input.GetMouseButtonDown(1) && (canFlag) && !gameover && !levelComplete)
+            if (Input.GetMouseButtonDown(1) && canFlag && !gameover && !levelComplete)
             {
                 Flag();
             }
@@ -197,7 +174,6 @@ public class Game : MonoBehaviour
                 grid.GenerateMines(cell, trapCount);
                 grid.GenerateNumbers();
                 generated = true;
-
                 canFlag = true;
             }
 
@@ -207,38 +183,27 @@ public class Game : MonoBehaviour
 
     public void Reveal(Cell cell)
     {
-        if (cell.revealed) return;
-        if (cell.flagged) return;
+        if (cell.revealed || cell.flagged) return;
 
         switch (cell.type)
         {
             case Cell.Type.Mine:
                 Explode(cell);
                 break;
-
             case Cell.Type.Empty:
                 StartCoroutine(Flood(cell));
                 CheckWinCondition();
                 break;
-
             default:
                 cell.revealed = true;
                 CheckWinCondition();
                 break;
         }
 
-        // Check if the selected character index is 3
-        if (CharacterManager.selectedCharacterIndex == 3)
+        if (CharacterManager.selectedCharacterIndex == 3 && Random.value <= gale?.dropSpawnChance) //Gale
         {
-            // Generate a random number between 0 and 1
-            float randomValue = Random.value;
-
-            // Check if the random value is less than or equal to 0.3 (60% chance)
-            if (randomValue <= 0.6f)
-            {
-                // Call the SpawnItemPrefab() method
-                gale.SpawnItemPrefab();
-            }
+            gale?.SpawnItemPrefab();
+            ScreenShake.Instance.TriggerShake(.05f, .05f);
         }
 
         board.Draw(grid);
@@ -246,64 +211,49 @@ public class Game : MonoBehaviour
 
     private IEnumerator Flood(Cell cell)
     {
-        if (gameover) yield break;
-        if (cell.revealed) yield break;
-        if (cell.type == Cell.Type.Mine) yield break;
+        if (gameover || cell.revealed || cell.type == Cell.Type.Mine) yield break;
 
         cell.revealed = true;
         board.Draw(grid);
-
         yield return null;
 
         if (cell.type == Cell.Type.Empty)
         {
-            if (grid.TryGetCell(cell.position.x - 1, cell.position.y, out Cell left)) {
-                StartCoroutine(Flood(left));
-            }
-            if (grid.TryGetCell(cell.position.x + 1, cell.position.y, out Cell right)) {
-                StartCoroutine(Flood(right));
-            }
-            if (grid.TryGetCell(cell.position.x, cell.position.y - 1, out Cell down)) {
-                StartCoroutine(Flood(down));
-            }
-            if (grid.TryGetCell(cell.position.x, cell.position.y + 1, out Cell up)) {
-                StartCoroutine(Flood(up));
-            }
+            FloodAdjacentCells(cell.position);
         }
+    }
+
+    private void FloodAdjacentCells(Vector3Int position)
+    {
+        if (grid.TryGetCell(position.x - 1, position.y, out Cell left)) StartCoroutine(Flood(left));
+        if (grid.TryGetCell(position.x + 1, position.y, out Cell right)) StartCoroutine(Flood(right));
+        if (grid.TryGetCell(position.x, position.y - 1, out Cell down)) StartCoroutine(Flood(down));
+        if (grid.TryGetCell(position.x, position.y + 1, out Cell up)) StartCoroutine(Flood(up));
     }
 
     private void Flag()
     {
-        if (!TryGetCellAtMousePosition(out Cell cell)) return;
+        if (!TryGetCellAtMousePosition(out Cell cell) || cell.revealed) return;
 
-        // Check if the cell is revealed before allowing the player to flag it
-        if (cell.revealed) return;
-
-        // If the cell is already flagged, remove the flag and increase flagCount
         if (cell.flagged)
         {
             cell.flagged = false;
             flagCount += 1;
-            UpdateMineFlagText();
 
-            AudioManager.Instance.PlaySound(AudioManager.SoundType.FlagSpell, Random.Range(.1f, 1.5f));
+            AudioManager.Instance.PlaySound(AudioManager.SoundType.FlagSpell, Random.Range(0.1f, 1.5f));
         }
-        else // If the cell is not flagged
+        else if (flagCount > 0)
         {
-            // Check if flagCount is greater than 0 before allowing the player to place a flag
-            if (flagCount > 0)
-            {
-                cell.flagged = true;
-                flagCount -= 1;
-                UpdateMineFlagText();
+            cell.flagged = true;
+            flagCount -= 1;
 
-                AudioManager.Instance.PlaySound(AudioManager.SoundType.FlagSpell, Random.Range(.1f, 1.5f));
-            }
+            AudioManager.Instance.PlaySound(AudioManager.SoundType.FlagSpell, Random.Range(0.1f, 1.5f));
         }
 
+        UpdateMineFlagText();
+        
         board.Draw(grid);
 
-        // Check for win conditions
         CheckWinConditionFlags();
     }
 
@@ -311,80 +261,64 @@ public class Game : MonoBehaviour
     {
         if (CharacterManager.selectedCharacterIndex == 1 && myst.invincible) //Mystic
         {
-            cell.flagged = true; // Flag the cell
-            cell.revealed = true; // Mark the cell as revealed
-            //myst.invincible = true; // Set the flag to true to indicate that the action has been performed
-            flagCount -= 1;
-            CheckWinConditionFlags();
+            FlagCell(cell);
+            ScreenShake.Instance.TriggerShake(.1f, .1f);
         }
         else if (CharacterManager.selectedCharacterIndex == 4) //Goblin
         {
-            // 50% chance to either explode or flag the mine
             if (Random.Range(0, 2) == 0)
             {
-                Debug.Log("Trap Exploded!");
-                AudioManager.Instance.PlaySound(AudioManager.SoundType.ShuffExplotion, Random.Range(.9f, 1.1f));
-                lostPanel.SetActive(true);
-                gameover = true;
-
-                // Set the mine as exploded
-                cell.exploded = true;
-                cell.revealed = true;
-
-                CheckWinConditionFlags();
-
-                // Reveal all other mines
-                for (int x = 0; x < width; x++)
-                {
-                    for (int y = 0; y < height; y++)
-                    {
-                        Cell currentCell = grid[x, y];
-
-                        if (currentCell.type == Cell.Type.Mine)
-                        {
-                            currentCell.revealed = true;
-                        }
-                    }
-                }
+                TriggerGameOver(cell);
+                AudioManager.Instance.PlaySound(AudioManager.SoundType.ShuffExplotion, 1f);
             }
             else
             {
-                // 50% chance to flag the mine
-                Debug.Log("Mine Flagged!");
-                AudioManager.Instance.PlaySound(AudioManager.SoundType.ShuffProc, Random.Range(.9f, 1.1f));
-                cell.flagged = true;
-                flagCount -= 1;
-                CheckWinConditionFlags();
-                CheckWinCondition();
+                FlagCell(cell);
+                ScreenShake.Instance.TriggerShake(.1f, .1f);
+                AudioManager.Instance.PlaySound(AudioManager.SoundType.ShuffProc, 1f);
             }
         }
         else
         {
-            Debug.Log("Game Over!");
-            lostPanel.SetActive(true);
-            gameover = true;
-            AudioManager.Instance.PlaySound(AudioManager.SoundType.LoseStepOnTrap, Random.Range(.9f, 1.1f));
+            TriggerGameOver(cell);
+        }
+    }
 
-            // Set the mine as exploded
-            cell.exploded = true;
-            cell.revealed = true;
+    private void FlagCell(Cell cell)
+    {
+        cell.flagged = true;
+        cell.revealed = true;
+        flagCount -= 1;
+        CheckWinConditionFlags();
+    }
 
-            // Reveal all other mines
-            for (int x = 0; x < width; x++)
+    private void TriggerGameOver(Cell cell)
+    {
+        Debug.Log("Game Over!");
+        lostPanel.SetActive(true);
+        ScreenShake.Instance.TriggerShake(.2f, .3f);
+        gameover = true;
+        AudioManager.Instance.PlaySound(AudioManager.SoundType.LoseStepOnTrap, Random.Range(0.9f, 1.1f));
+        cell.exploded = true;
+        cell.revealed = true;
+        RevealAllMines();
+    }
+
+    private void RevealAllMines()
+    {
+        for (int x = 0; x < width; x++)
+        {
+            for (int y = 0; y < height; y++)
             {
-                for (int y = 0; y < height; y++)
+                Cell currentCell = grid[x, y];
+                if (currentCell.type == Cell.Type.Mine)
                 {
-                    Cell currentCell = grid[x, y];
-
-                    if (currentCell.type == Cell.Type.Mine)
-                    {
-                        currentCell.revealed = true;
-                    }
+                    currentCell.revealed = true;
                 }
             }
         }
     }
-    
+
     public void CheckWinCondition()
     {
         for (int x = 0; x < width; x++)
@@ -396,6 +330,7 @@ public class Game : MonoBehaviour
                 // All non-mine cells must be revealed to have won
                 if (cell.type != Cell.Type.Mine && !cell.revealed)
                 {
+                    Debug.Log($"Cell at {x},{y} is not revealed yet.");
                     return; // no win, continue checking other cells
                 }
             }
@@ -403,35 +338,14 @@ public class Game : MonoBehaviour
 
         if (!levelComplete)
         {
-            Debug.Log("Winner!");
-            magicBlock.SetActive(false);
-            solvedPanel.SetActive(true);
-
-            levelComplete = true;
-            AudioManager.Instance.PlaySound(AudioManager.SoundType.LevelComplete, 1f);
-
-            // Flag all the mines
-            for (int x = 0; x < width; x++)
-            {
-                for (int y = 0; y < height; y++)
-                {
-                    Cell cell = grid[x, y];
-
-                    if (cell.type == Cell.Type.Mine)
-                    {
-                        cell.flagged = true;
-                    }
-                }
-            }
+            WinGame();
         }
-        
     }
 
     public void CheckWinConditionFlags()
     {
         bool allMinesFlagged = true;
 
-        // Check if all mine cells are flagged
         for (int x = 0; x < width; x++)
         {
             for (int y = 0; y < height; y++)
@@ -442,6 +356,7 @@ public class Game : MonoBehaviour
                 if (cell.type == Cell.Type.Mine && !cell.flagged)
                 {
                     allMinesFlagged = false;
+                    Debug.Log($"Mine at {x},{y} is not flagged yet.");
                     break;
                 }
             }
@@ -456,13 +371,29 @@ public class Game : MonoBehaviour
         // If all mine cells are correctly flagged, the player wins
         if (allMinesFlagged && !levelComplete)
         {
-            Debug.Log("Winner Miner!");
-            AudioManager.Instance.PlaySound(AudioManager.SoundType.LevelComplete, 1f);
-            levelComplete = true;            
-            
-            magicBlock.SetActive(false);
-            canFlag = false;
-            solvedPanel.SetActive(true);
+            WinGame();
+        }
+    }
+
+    private void WinGame()
+    {
+        Debug.Log("Winner!");
+        magicBlock.SetActive(false);
+        ScreenShake.Instance.TriggerShake(.1f, .1f);
+        solvedPanel.SetActive(true);
+        levelComplete = true;
+        AudioManager.Instance.PlaySound(AudioManager.SoundType.LevelComplete, 1f);
+
+        for (int x = 0; x < width; x++)
+        {
+            for (int y = 0; y < height; y++)
+            {
+                Cell cell = grid[x, y];
+                if (cell.type == Cell.Type.Mine)
+                {
+                    cell.flagged = true;
+                }
+            }
         }
     }
 
@@ -475,17 +406,13 @@ public class Game : MonoBehaviour
 
     private bool TryGetCellAtPlayerPosition(out Cell cell)
     {
-        // Convert the player's world position to grid position
         Vector3 worldPosition = player.transform.position;
         Vector3Int cellPosition = board.tilemap.WorldToCell(worldPosition);
-    
-        // Try to get the cell at the player's position
         return grid.TryGetCell(cellPosition.x, cellPosition.y, out cell);
     }
 
     private void UpdateMineFlagText()
     {
-        // Update the text to display mine and flag counts
         trapText.text = "Traps: " + trapCount;
         flagText.text = "Flags: " + flagCount;
     }

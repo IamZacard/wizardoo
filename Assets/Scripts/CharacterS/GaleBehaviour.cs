@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -11,18 +12,23 @@ public class GaleBehaviour : MonoBehaviour
 
     [Header("DropItems")]
     public int numOfItems;
-    public int requirednumOfItems = 3;
+    public int requiredNumOfItems = 3;
+    public float dropSpawnChance = .7f;
+    public GameObject[] dropPrefab;
+
     [SerializeField] private Transform effectPoint;
     public GameObject blastEffect;
-    public GameObject[] dropPrefab;
 
     [SerializeField] private Image spellIcon; // Drag your spell icon Image here in the Inspector
     public Color readyColor = Color.white; // Bright color when ready
     public Color notReadyColor = Color.grey; // Grey color when not ready
+    public float pulseDuration = 2f; // Duration of one pulse cycle
 
+    private Coroutine pulseCoroutine;
     private TextMeshProUGUI charactersText;
     private Game gameRules; // Reference to the Game script for accessing the tilemap
     private Board board; // Reference to the Board script for accessing the tilemap
+    private List<Vector3Int> usedSpawnPositions = new List<Vector3Int>(); // List to store used spawn positions
 
     private void Awake()
     {
@@ -37,7 +43,7 @@ public class GaleBehaviour : MonoBehaviour
             Debug.LogWarning("No GameObject with tag 'GameRules' found!");
         }
 
-        charactersText = GameObject.FindGameObjectWithTag("AbilityText").GetComponent<TextMeshProUGUI>();
+        charactersText = GameObject.FindGameObjectWithTag("AbilityText")?.GetComponent<TextMeshProUGUI>();
         if (charactersText == null)
         {
             Debug.LogWarning("TextMeshProUGUI component with the specified tag not found!");
@@ -48,6 +54,7 @@ public class GaleBehaviour : MonoBehaviour
     {
         galeIndex = CharacterManager.selectedCharacterIndex;
         UpdateCharacterText();
+        UpdateSpellIcon();
     }
 
     private void Update()
@@ -59,30 +66,31 @@ public class GaleBehaviour : MonoBehaviour
         }
 
         // Trigger blast effect when conditions are met
-        if (numOfItems >= requirednumOfItems && Input.GetMouseButtonDown(0) && !EventSystem.current.IsPointerOverGameObject())
+        if (numOfItems >= requiredNumOfItems && Input.GetMouseButtonDown(0) && !gameRules.levelComplete && !EventSystem.current.IsPointerOverGameObject())
         {
             FlagRandomTrap();
             Instantiate(blastEffect, effectPoint.transform.position, Quaternion.identity);
+            ScreenShake.Instance.TriggerShake(1f, 1f);
             AudioManager.Instance.PlaySound(AudioManager.SoundType.GaleBlast, 1f);
             Debug.Log("blastEffect!");
             gameRules.CheckWinConditionFlags();
         }
 
-        //Spell Icon color
+        // Update spell icon color
         UpdateSpellIcon();
     }
 
     private void FlagRandomTrap()
     {
-        numOfItems -= requirednumOfItems;
-        gameRules.flagCount -= 1;
-        UpdateCharacterText();
-
         if (gameRules == null)
         {
             Debug.LogWarning("GameRules script is not assigned!");
             return;
         }
+
+        numOfItems -= requiredNumOfItems;
+        gameRules.flagCount -= 1;
+        UpdateCharacterText();
 
         Vector3Int characterPosition = Vector3Int.FloorToInt(transform.position);
         List<Vector3Int> nearbyMinePositions = new List<Vector3Int>();
@@ -127,10 +135,10 @@ public class GaleBehaviour : MonoBehaviour
         Vector3Int characterCellPosition = Vector3Int.FloorToInt(transform.position);
         List<Vector3Int> validSpawnPositions = new List<Vector3Int>();
 
-        // Find valid spawn positions excluding character's current cell
+        // Find valid spawn positions excluding character's current cell and used positions
         foreach (Vector3Int cellPosition in revealedCellPositions)
         {
-            if (cellPosition != characterCellPosition)
+            if (cellPosition != characterCellPosition && !usedSpawnPositions.Contains(cellPosition))
             {
                 validSpawnPositions.Add(cellPosition);
             }
@@ -141,6 +149,7 @@ public class GaleBehaviour : MonoBehaviour
             Vector3Int randomSpawnPosition = validSpawnPositions[UnityEngine.Random.Range(0, validSpawnPositions.Count)];
             Vector3 cellWorldPosition = board.tilemap.GetCellCenterWorld(randomSpawnPosition);
             Instantiate(dropPrefab[UnityEngine.Random.Range(0, dropPrefab.Length)], cellWorldPosition, Quaternion.identity);
+            usedSpawnPositions.Add(randomSpawnPosition); // Add the new spawn position to the list
         }
         else
         {
@@ -208,17 +217,42 @@ public class GaleBehaviour : MonoBehaviour
         {
             Destroy(prefab);
         }
+
+        usedSpawnPositions.Clear(); // Clear the used positions list
     }
 
-    void UpdateSpellIcon()
+    private void UpdateSpellIcon()
     {
-        if (numOfItems >= requirednumOfItems)
+        if (numOfItems >= requiredNumOfItems)
         {
             spellIcon.color = readyColor;
+            if (pulseCoroutine == null)
+            {
+                pulseCoroutine = StartCoroutine(PulseIcon());
+            }
         }
         else
         {
             spellIcon.color = notReadyColor;
+            if (pulseCoroutine != null)
+            {
+                StopCoroutine(pulseCoroutine);
+                pulseCoroutine = null;
+            }
+        }
+    }
+
+    private IEnumerator PulseIcon()
+    {
+        while (true)
+        {
+            float elapsedTime = 0f;
+            while (elapsedTime < pulseDuration)
+            {
+                spellIcon.transform.localScale = Vector3.Lerp(Vector3.one, Vector3.one * 1.2f, Mathf.PingPong(elapsedTime, pulseDuration / 2));
+                elapsedTime += Time.deltaTime;
+                yield return null;
+            }
         }
     }
 

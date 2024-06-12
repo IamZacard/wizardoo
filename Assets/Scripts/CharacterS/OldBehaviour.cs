@@ -21,7 +21,6 @@ public class OldBehaviour : MonoBehaviour
     private Game gameRules;
     private Board board; // Reference to the Board script for accessing the tilemap
 
-    //[Header("UI")]
     private TextMeshProUGUI charactersText;
 
     private void Awake()
@@ -77,6 +76,7 @@ public class OldBehaviour : MonoBehaviour
         {
             RevealCellsAroundCharacter();
             Instantiate(revealEffect, transform.position, Quaternion.identity);
+            ScreenShake.Instance.TriggerShake(.2f, 1f);
             AudioManager.Instance.PlaySound(AudioManager.SoundType.SageReveal, Random.Range(.9f, 1.1f));
         }
 
@@ -89,14 +89,14 @@ public class OldBehaviour : MonoBehaviour
             pulseCoroutine = StartCoroutine(PulseIcon());
         }
 
-        //Spell Icon color
+        // Spell Icon color
         UpdateSpellIcon();
     }
 
     private void RevealCellsAroundCharacter()
     {
         currentCastCount++;
-        int flagsRemoved = 0; // Count the number of flags removed
+        int newFlagsAdded = 0; // Count the number of new flags added
 
         // Get the position of the character
         Vector3 characterPosition = transform.position;
@@ -115,17 +115,16 @@ public class OldBehaviour : MonoBehaviour
                     // Try to get the cell at the calculated position
                     if (gameRules.grid.TryGetCell(cellPosition.x, cellPosition.y, out Cell cell))
                     {
-                        // Check if it's a mine cell
-                        if (cell.type == Cell.Type.Mine && !cell.revealed)
+                        if (cell.type == Cell.Type.Mine && !cell.revealed && !cell.flagged)
                         {
-                            // Automatically flag the mine if it's not revealed
+                            // Automatically flag the mine if it's not revealed and not already flagged
                             cell.flagged = true;
-                            flagsRemoved++; // Increase flag count
+                            newFlagsAdded++; // Increase new flag count
                             board.Draw(gameRules.grid);
                         }
-                        else
+                        else if (!cell.revealed)
                         {
-                            // Reveal the cell
+                            // Reveal the cell if it's not a mine and not already revealed
                             gameRules.Reveal(cell);
                             board.Draw(gameRules.grid);
                         }
@@ -134,7 +133,7 @@ public class OldBehaviour : MonoBehaviour
             }
         }
 
-        gameRules.flagCount -= flagsRemoved; // Deduct the number of flags removed from the flag count
+        gameRules.flagCount -= newFlagsAdded; // Deduct the number of new flags added from the flag count
 
         gameRules.CheckWinConditionFlags();
         gameRules.CheckWinCondition();

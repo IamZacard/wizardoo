@@ -8,6 +8,7 @@ public class LevelCompleteSpawner : MonoBehaviour
 
     private Game gameRules; // Reference to the Game script
     private bool hasSpawned = false; // Flag to ensure the object spawns only once
+    private GameObject spawnedObject; // Reference to the spawned object
 
     private void Start()
     {
@@ -35,13 +36,19 @@ public class LevelCompleteSpawner : MonoBehaviour
             // Set the flag to true to prevent further spawns
             hasSpawned = true;
         }
+
+        if (Input.GetKeyDown(KeyCode.N) || Input.GetKeyDown(KeyCode.R) || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space))
+        {
+            DestroySpawnedObject();
+        }
     }
 
     private void SpawnObject()
     {
         if (objectToSpawn != null && spawnPoint != null)
         {
-            GameObject spawnedObject = Instantiate(objectToSpawn, spawnPoint.position, spawnPoint.rotation);
+            spawnedObject = Instantiate(objectToSpawn, spawnPoint.position, spawnPoint.rotation);
+            ScreenShake.Instance.TriggerShake(.3f, .5f);
             Debug.Log("Object spawned!");
 
             // Destroy the object after the specified lifetime
@@ -50,6 +57,19 @@ public class LevelCompleteSpawner : MonoBehaviour
         else
         {
             Debug.LogWarning("Object to spawn or spawn point is not set!");
+        }
+    }
+
+    private void DestroySpawnedObject()
+    {
+        if (spawnedObject != null)
+        {
+            Destroy(spawnedObject);
+            Debug.Log("Spawned object destroyed!");
+        }
+        else
+        {
+            Debug.LogWarning("No spawned object to destroy!");
         }
     }
 }

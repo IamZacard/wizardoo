@@ -9,18 +9,18 @@ public class PlayerController : MonoBehaviour
     private PlayerMovement controls;
     private SpriteRenderer sr;
     private Rigidbody2D rb;
-    public Game gameRules;
+    private Game gameRules;
 
     [SerializeField] private Transform effectPoint;
     [SerializeField] private GameObject flagEffect;
     [SerializeField] private GameObject stepEffect;
     [SerializeField] private GameObject pickUpEffect;
-    [SerializeField] private Tilemap groundTileMap;
+    private Tilemap groundTileMap;
     private Tilemap roomTileMap;
-    [SerializeField] private Tilemap colissionTileMap;
+    private Tilemap colissionTileMap;
 
-    [SerializeField] private TextMeshProUGUI deathCount;
-    [SerializeField] private TextMeshProUGUI stepsCount;
+    private TextMeshProUGUI deathCount;
+    private TextMeshProUGUI stepsCount;
 
     private bool deathCountIncreased = false;
     private int restartCount = 0;
@@ -153,7 +153,7 @@ public class PlayerController : MonoBehaviour
             if (IsNumberTile(currentCellPosition))
             {
                 timeSpentOnTile += Time.deltaTime;
-                if (timeSpentOnTile >= requiredTimeOnTile && alphaCoroutine == null)
+                if (timeSpentOnTile >= requiredTimeOnTile && alphaCoroutine == null && !gameRules.levelComplete)
                 {
                     alphaCoroutine = StartCoroutine(PulseAlpha());
                 }

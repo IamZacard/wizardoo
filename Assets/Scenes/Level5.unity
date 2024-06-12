@@ -4053,7 +4053,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8534246139815367730, guid: bce4a591570ed264eb4e43de4f05da81, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 2.5
+      value: 3.5
       objectReference: {fileID: 0}
     - target: {fileID: 8534246139815367730, guid: bce4a591570ed264eb4e43de4f05da81, type: 3}
       propertyPath: m_LocalPosition.y
@@ -5750,7 +5750,7 @@ MonoBehaviour:
   lostPanel: {fileID: 480052184}
   solvedPanel: {fileID: 473460943}
   gameover: 0
-  levelcomplete: 0
+  levelComplete: 0
   canFlag: 0
 --- !u!156049354 &1965253255
 Grid:
