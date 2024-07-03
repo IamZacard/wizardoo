@@ -1,4 +1,3 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
@@ -9,8 +8,9 @@ using UnityEngine.UI;
 public class GaleBehaviour : MonoBehaviour
 {
     public int galeIndex;
+    private PlayerController movement;
 
-    [Header("DropItems")]
+    [Header("Drop Items")]
     public int numOfItems;
     public int requiredNumOfItems = 3;
     public float dropSpawnChance = .7f;
@@ -19,20 +19,27 @@ public class GaleBehaviour : MonoBehaviour
     [SerializeField] private Transform effectPoint;
     public GameObject blastEffect;
 
-    [SerializeField] private Image spellIcon; // Drag your spell icon Image here in the Inspector
-    public Color readyColor = Color.white; // Bright color when ready
-    public Color notReadyColor = Color.grey; // Grey color when not ready
-    public float pulseDuration = 2f; // Duration of one pulse cycle
+    [SerializeField] private Image spellIcon;
+    public Color readyColor = Color.white;
+    public Color notReadyColor = Color.grey;
+    public float pulseDuration = 2f;
 
     private Coroutine pulseCoroutine;
     private TextMeshProUGUI charactersText;
-    private Game gameRules; // Reference to the Game script for accessing the tilemap
-    private Board board; // Reference to the Board script for accessing the tilemap
-    private List<Vector3Int> usedSpawnPositions = new List<Vector3Int>(); // List to store used spawn positions
+    private Game gameRules;
+    private Board board;
+    private List<Vector3Int> usedSpawnPositions = new List<Vector3Int>();
+
+    [Header("Upgrade Panel")]
+    public GameObject upgradePanel;
+    public Button upgradeButton1;
+    public Button upgradeButton2;
+    public Button upgradeButton3;
+
+    private Vector3 originalScale;
 
     private void Awake()
     {
-        // Initialize references
         if (!GameObject.FindGameObjectWithTag("Board").TryGetComponent(out board))
         {
             Debug.LogWarning("No GameObject with tag 'Board' found!");
@@ -48,6 +55,12 @@ public class GaleBehaviour : MonoBehaviour
         {
             Debug.LogWarning("TextMeshProUGUI component with the specified tag not found!");
         }
+
+        movement = GameObject.FindGameObjectWithTag("Player")?.GetComponent<PlayerController>();
+        if (movement == null)
+        {
+            Debug.LogWarning("No GameObject with tag 'Player' found!");
+        }
     }
 
     private void Start()
@@ -55,18 +68,28 @@ public class GaleBehaviour : MonoBehaviour
         galeIndex = CharacterManager.selectedCharacterIndex;
         UpdateCharacterText();
         UpdateSpellIcon();
+
+        upgradePanel.SetActive(false);
+        SetButtonLabels();
+
+        // Set the original scale for buttons
+        originalScale = upgradeButton1.transform.localScale;
+
+        // Register to the upgrade ready event
+        if (UpgradeManager.Instance != null)
+        {
+            UpgradeManager.Instance.OnUpgradeReady.AddListener(OpenUpgradePanel);
+        }
     }
 
     private void Update()
     {
-        // Reset item number on specific key press
         if (Input.GetKeyDown(KeyCode.N) || Input.GetKeyDown(KeyCode.R) || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space))
         {
             ResetPrefabNum();
         }
 
-        // Trigger blast effect when conditions are met
-        if (numOfItems >= requiredNumOfItems && Input.GetMouseButtonDown(0) && !gameRules.levelComplete && !EventSystem.current.IsPointerOverGameObject())
+        if (numOfItems >= requiredNumOfItems && Input.GetMouseButtonDown(0) && !gameRules.levelComplete && !EventSystem.current.IsPointerOverGameObject() && movement.activePlayer)
         {
             FlagRandomTrap();
             Instantiate(blastEffect, effectPoint.transform.position, Quaternion.identity);
@@ -76,7 +99,6 @@ public class GaleBehaviour : MonoBehaviour
             gameRules.CheckWinConditionFlags();
         }
 
-        // Update spell icon color
         UpdateSpellIcon();
     }
 
@@ -95,7 +117,6 @@ public class GaleBehaviour : MonoBehaviour
         Vector3Int characterPosition = Vector3Int.FloorToInt(transform.position);
         List<Vector3Int> nearbyMinePositions = new List<Vector3Int>();
 
-        // Find nearby mine positions within a certain radius
         for (int x = -10; x <= 10; x++)
         {
             for (int y = -10; y <= 10; y++)
@@ -108,7 +129,6 @@ public class GaleBehaviour : MonoBehaviour
             }
         }
 
-        // Flag a random nearby mine position if available
         if (nearbyMinePositions.Count > 0)
         {
             Vector3Int selectedMinePosition = nearbyMinePositions[UnityEngine.Random.Range(0, nearbyMinePositions.Count)];
@@ -135,7 +155,6 @@ public class GaleBehaviour : MonoBehaviour
         Vector3Int characterCellPosition = Vector3Int.FloorToInt(transform.position);
         List<Vector3Int> validSpawnPositions = new List<Vector3Int>();
 
-        // Find valid spawn positions excluding character's current cell and used positions
         foreach (Vector3Int cellPosition in revealedCellPositions)
         {
             if (cellPosition != characterCellPosition && !usedSpawnPositions.Contains(cellPosition))
@@ -149,25 +168,12 @@ public class GaleBehaviour : MonoBehaviour
             Vector3Int randomSpawnPosition = validSpawnPositions[UnityEngine.Random.Range(0, validSpawnPositions.Count)];
             Vector3 cellWorldPosition = board.tilemap.GetCellCenterWorld(randomSpawnPosition);
             Instantiate(dropPrefab[UnityEngine.Random.Range(0, dropPrefab.Length)], cellWorldPosition, Quaternion.identity);
-            usedSpawnPositions.Add(randomSpawnPosition); // Add the new spawn position to the list
+            usedSpawnPositions.Add(randomSpawnPosition);
         }
         else
         {
             Debug.LogWarning("No valid cells available to spawn the prefab!");
         }
-    }
-
-    private bool IsCellOccupied(Vector3 worldPosition)
-    {
-        Collider2D[] colliders = Physics2D.OverlapCircleAll(worldPosition, 0.1f);
-        foreach (Collider2D collider in colliders)
-        {
-            if (collider.CompareTag("GalesDrop"))
-            {
-                return true; // The cell is occupied
-            }
-        }
-        return false; // The cell is not occupied
     }
 
     private Vector3Int[] GetRevealedCellPositions()
@@ -202,7 +208,7 @@ public class GaleBehaviour : MonoBehaviour
         {
             numOfItems += 1;
             Destroy(other.gameObject);
-            charactersText.text = "Shards: " + numOfItems + "/3";
+            UpdateCharacterText();
             AudioManager.Instance.PlaySound(AudioManager.SoundType.GalePickUp, UnityEngine.Random.Range(.9f, 1.1f));
         }
     }
@@ -218,7 +224,8 @@ public class GaleBehaviour : MonoBehaviour
             Destroy(prefab);
         }
 
-        usedSpawnPositions.Clear(); // Clear the used positions list
+        usedSpawnPositions.Clear();
+        movement.activePlayer = true;
     }
 
     private void UpdateSpellIcon()
@@ -259,5 +266,107 @@ public class GaleBehaviour : MonoBehaviour
     private void UpdateCharacterText()
     {
         charactersText.text = "Shards: " + numOfItems + "/3";
+    }
+
+    private void SelectUpgrade(int index)
+    {
+        Debug.Log("Upgrade option " + index + " selected.");
+        //AudioManager.Instance.PlaySound(AudioManager.SoundType.ShuffProc, 1f);
+        upgradePanel.SetActive(false);
+
+        upgradeButton1.onClick.RemoveAllListeners();
+        upgradeButton2.onClick.RemoveAllListeners();
+        upgradeButton3.onClick.RemoveAllListeners();
+
+        switch (index)
+        {
+            case 1:
+                IncreaseChanceOfSpawnShards();
+                break;
+            case 2:
+                DecreaseTrapCount();
+                break;
+            case 3:
+                DisableMagicBlock();
+                break;
+        }
+    }
+    private void IncreaseChanceOfSpawnShards()
+    {
+        dropSpawnChance = .8f;
+        Debug.Log("Increased chance of spawning shards");
+    }
+
+    private void DecreaseTrapCount()
+    {
+        // Assuming there's a GameManager or LevelManager that handles the trap count
+        gameRules.trapCountIncrease = -2;
+        Debug.Log("Trap count decreased by 2 for the next levels");
+    }
+
+    private void DisableMagicBlock()
+    {
+        GameObject magicBlock = GameObject.FindGameObjectWithTag("MagicBlock");
+        if (magicBlock != null)
+        {
+            magicBlock.SetActive(false);
+            Debug.Log("Magic block disabled");
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (UpgradeManager.Instance != null)
+        {
+            UpgradeManager.Instance.OnUpgradeReady.RemoveListener(OpenUpgradePanel);
+        }
+    }
+
+    private void SetButtonLabels()
+    {
+        upgradeButton1.GetComponentInChildren<TextMeshProUGUI>().text = "Increase chance of spawning shards from 70 to 80";
+        upgradeButton2.GetComponentInChildren<TextMeshProUGUI>().text = "Reduce traps in the next levels by 2";
+        upgradeButton3.GetComponentInChildren<TextMeshProUGUI>().text = "Disable Magic Block";
+    }
+
+    private void OpenUpgradePanel()
+    {
+        upgradePanel.SetActive(true);
+        upgradeButton1.onClick.AddListener(() => SelectUpgrade(1));
+        upgradeButton2.onClick.AddListener(() => SelectUpgrade(2));
+        upgradeButton3.onClick.AddListener(() => SelectUpgrade(3));
+    }
+    
+
+    public void ScaleOn(Button button)
+    {
+        StartCoroutine(ScaleButton(button.gameObject, originalScale, 1.25f));
+        AudioManager.Instance.PlaySound(AudioManager.SoundType.ButtonClick, 1f);
+    }
+
+    public void ScaleOff(Button button)
+    {
+        StartCoroutine(ScaleButton(button.gameObject, originalScale, 1f));
+    }
+
+    private IEnumerator ScaleButton(GameObject button, Vector3 originalScale, float scaleMultiplier)
+    {
+        RectTransform rectTransform = button.GetComponent<RectTransform>();
+        if (rectTransform != null)
+        {
+            Vector3 targetScale = originalScale * scaleMultiplier;
+            Vector3 startScale = rectTransform.localScale;
+            float elapsedTime = 0f;
+            float scaleDuration = 0.2f;
+
+            while (elapsedTime < scaleDuration)
+            {
+                rectTransform.localScale = Vector3.Lerp(startScale, targetScale, elapsedTime / scaleDuration);
+                elapsedTime += Time.deltaTime;
+                yield return null;
+            }
+
+            rectTransform.localScale = targetScale;
+        }
     }
 }

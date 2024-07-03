@@ -8,13 +8,10 @@ public class Board : MonoBehaviour
     public Tilemap tilemap { get; private set; }
 
     public Tile[] tileUnknownVariants;
-    //public Tile tileUnknown;
     public Tile tileFloor;
     public Tile tileEmpty;
     public Tile tileMine;
     public Tile tileExploded;
-    //public Tile tilePillar;
-    //public Tile tileFlag;
     public AnimatedTile tileFlag_anim;
     public Tile tileNum1;
     public Tile tileNum2;
@@ -26,6 +23,7 @@ public class Board : MonoBehaviour
     public Tile tileNum8;
 
     private HashSet<Vector3Int> pillarPositions = new HashSet<Vector3Int>();
+    private HashSet<Vector3Int> shrinePositions = new HashSet<Vector3Int>();
 
     private void Awake()
     {
@@ -37,9 +35,9 @@ public class Board : MonoBehaviour
         int width = grid.Width;
         int height = grid.Height;
 
-        // Get all game objects with the "pillar" tag
+        // Get all game objects with the "Pillar" tag
         GameObject[] pillars = GameObject.FindGameObjectsWithTag("Pillar");
-        HashSet<Vector3Int> pillarPositions = new HashSet<Vector3Int>();
+        pillarPositions.Clear();
 
         // Store the positions of all pillars
         foreach (GameObject pillar in pillars)
@@ -48,40 +46,44 @@ public class Board : MonoBehaviour
             pillarPositions.Add(position);
         }
 
+        // Get all game objects with the "Shrine" tag
+        GameObject[] shrines = GameObject.FindGameObjectsWithTag("Shrine");
+        shrinePositions.Clear();
+
+        // Store the positions of all shrines
+        foreach (GameObject shrine in shrines)
+        {
+            Vector3Int position = tilemap.WorldToCell(shrine.transform.position);
+            shrinePositions.Add(position);
+        }
+
         // Iterate through all cells in the grid
         for (int x = 0; x < width; x++)
         {
             for (int y = 0; y < height; y++)
             {
                 Vector3Int cellPosition = new Vector3Int(x, y, 0);
+                Cell cell = grid[x, y];
 
-                // Skip drawing the cell if it's a pillar position
+                // Check if the cell is a pillar position
                 if (pillarPositions.Contains(cellPosition))
                 {
-                    grid[x, y].type = Cell.Type.Pillar;
+                    cell.type = Cell.Type.Pillar;
                     continue;
                 }
 
-                Cell cell = grid[x, y];
+                // Check if the cell is a shrine position
+                if (shrinePositions.Contains(cellPosition))
+                {
+                    cell.type = Cell.Type.Shrine;
+                    continue;
+                }
+
+                // Set the tile
                 tilemap.SetTile(cell.position, GetTile(cell));
             }
         }
     }
-
-    /*public void Draw(CellGrid grid)
-    {
-        int width = grid.Width;
-        int height = grid.Height;
-
-        for (int x = 0; x < width; x++)
-        {
-            for (int y = 0; y < height; y++)
-            {
-                Cell cell = grid[x, y];
-                tilemap.SetTile(cell.position, GetTile(cell));
-            }
-        }
-    }*/
 
     private TileBase GetTile(Cell cell)
     {
@@ -95,16 +97,12 @@ public class Board : MonoBehaviour
         }
         else
         {
-            // If the cell is not revealed or flagged, return the unknown tile
             return GetUnknownTile();
         }
     }
 
-
-
     private Tile GetUnknownTile()
     {
-        // Randomly select a variant of tileUnknown
         if (tileUnknownVariants != null && tileUnknownVariants.Length > 0)
         {
             int randomIndex = Random.Range(0, tileUnknownVariants.Length);
@@ -121,56 +119,17 @@ public class Board : MonoBehaviour
     {
         switch (cell.type)
         {
-            case Cell.Type.Empty: return tileEmpty;            
+            case Cell.Type.Empty: return tileEmpty;
             case Cell.Type.Mine: return cell.exploded ? tileExploded : tileMine;
-            //case Cell.Type.Pillar return null;
             case Cell.Type.Number: return GetNumberTile(cell);
+            case Cell.Type.Pillar: return null; // Do not display a tile for Pillar
+            case Cell.Type.Shrine: return null; // Do not display a tile for Shrine
             default: return null;
         }
     }
 
-    // Add this method to check if a cell is revealed
-    public bool IsCellRevealed(Vector3Int cellPosition)
-    {
-        // Convert the world position to grid position
-        Vector3Int gridCellPosition = tilemap.WorldToCell(cellPosition);
-
-        // Get the tile at the given cell position
-        TileBase tile = tilemap.GetTile(gridCellPosition);
-
-        // Check if the tile is not null (revealed)
-        return tile != null;
-    }
-
-    public Cell.Type GetCellType(Vector3Int cellPosition)
-    {
-        // Convert the world position to grid position
-        Vector3Int gridCellPosition = tilemap.WorldToCell(cellPosition);
-
-        // Get the tile at the given cell position
-        TileBase tile = tilemap.GetTile(gridCellPosition);
-
-        // Determine the cell type based on the tile
-        if (tile == tileFloor)
-        {
-            return Cell.Type.Floor;
-        }
-        // Add other conditions to check for different cell types if needed
-
-        // Default to Empty if no specific cell type is found
-        return Cell.Type.Empty;
-    }
-
     private Tile GetNumberTile(Cell cell)
     {
-        // Check if the cell is adjacent to a pillar
-        if (IsAdjacentToPillar(cell.position))
-        {
-            // Return null to indicate that no number tile should be drawn for this cell
-            return null;
-        }
-
-        // If not adjacent to a pillar, generate the number tile as usual
         switch (cell.number)
         {
             case 1: return tileNum1;
@@ -185,14 +144,31 @@ public class Board : MonoBehaviour
         }
     }
 
+    public bool IsCellRevealed(Vector3Int cellPosition)
+    {
+        Vector3Int gridCellPosition = tilemap.WorldToCell(cellPosition);
+        TileBase tile = tilemap.GetTile(gridCellPosition);
+        return tile != null;
+    }
+
+    public Cell.Type GetCellType(Vector3Int cellPosition)
+    {
+        Vector3Int gridCellPosition = tilemap.WorldToCell(cellPosition);
+        TileBase tile = tilemap.GetTile(gridCellPosition);
+
+        if (tile == tileFloor)
+        {
+            return Cell.Type.Empty;
+        }
+        return Cell.Type.Empty;
+    }
+
     private bool IsAdjacentToPillar(Vector3Int cellPosition)
     {
-        // Iterate through adjacent cells
         for (int x = -1; x <= 1; x++)
         {
             for (int y = -1; y <= 1; y++)
             {
-                // Skip the current cell
                 if (x == 0 && y == 0)
                 {
                     continue;
@@ -200,23 +176,101 @@ public class Board : MonoBehaviour
 
                 Vector3Int adjacentCellPosition = cellPosition + new Vector3Int(x, y, 0);
 
-                // Check if the adjacent cell is a pillar position
                 if (IsPillarPosition(adjacentCellPosition))
                 {
                     return true;
                 }
             }
         }
-
-        // No adjacent pillar found
         return false;
     }
 
     private bool IsPillarPosition(Vector3Int cellPosition)
     {
-        // Check if the cell position matches any pillar position
         return pillarPositions.Contains(cellPosition);
     }
 
+    private bool IsAdjacentToShrine(Vector3Int cellPosition)
+    {
+        for (int x = -1; x <= 1; x++)
+        {
+            for (int y = -1; y <= 1; y++)
+            {
+                if (x == 0 && y == 0)
+                {
+                    continue;
+                }
 
+                Vector3Int adjacentCellPosition = cellPosition + new Vector3Int(x, y, 0);
+
+                if (shrinePositions.Contains(adjacentCellPosition))
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private bool IsShrinePosition(Vector3Int cellPosition)
+    {
+        return shrinePositions.Contains(cellPosition);
+    }
+
+    public void PlaceTraps(CellGrid grid, int numberOfTraps)
+    {
+        int width = grid.Width;
+        int height = grid.Height;
+        int trapsPlaced = 0;
+
+        while (trapsPlaced < numberOfTraps)
+        {
+            int x = Random.Range(0, width);
+            int y = Random.Range(0, height);
+
+            if (grid[x, y].type == Cell.Type.Empty && !shrinePositions.Contains(new Vector3Int(x, y, 0)))
+            {
+                grid[x, y].type = Cell.Type.Mine;
+                trapsPlaced++;
+            }
+        }
+    }
+
+    public void CalculateNumbers(CellGrid grid)
+    {
+        int width = grid.Width;
+        int height = grid.Height;
+
+        for (int x = 0; x < width; x++)
+        {
+            for (int y = 0; y < height; y++)
+            {
+                Cell cell = grid[x, y];
+
+                if (cell.type == Cell.Type.Empty)
+                {
+                    int mineCount = grid.CountAdjacentMines(cell);
+
+                    if (mineCount > 0)
+                    {
+                        cell.type = Cell.Type.Number;
+                        cell.number = mineCount;
+                    }
+                }
+            }
+        }
+    }
+
+    public void RevealCell(Vector3Int cellPosition)
+    {
+        // Logic to reveal the cell, e.g., change tile sprite, set visibility, etc.
+        Tile tile = tilemap.GetTile<Tile>(cellPosition);
+        if (tile != null)
+        {
+            // Change the appearance or state of the tile to show it's revealed
+            // For example, changing its color or sprite
+            tilemap.SetTileFlags(cellPosition, TileFlags.None);
+            tilemap.SetColor(cellPosition, Color.white); // Example: change color to white to indicate revealed
+        }
+    }
 }

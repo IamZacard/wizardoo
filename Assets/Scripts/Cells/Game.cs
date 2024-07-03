@@ -29,6 +29,11 @@ public class Game : MonoBehaviour
     public TextMeshProUGUI trapText;
     public TextMeshProUGUI flagText;
 
+    [Header("Skull")]
+    [SerializeField] private RectTransform skullImage;
+    private Vector3 initialSkullPosition;
+    private Vector3 initialSkullScale;
+
     [Header("Panels")]
     [SerializeField] private GameObject lostPanel;
     [SerializeField] private GameObject solvedPanel;
@@ -41,8 +46,10 @@ public class Game : MonoBehaviour
     private Board board;
     public CellGrid grid;
 
+    
     private MystBehaviour myst;
     private GaleBehaviour gale;
+    private GoblinBehaviour goblin;
 
     private void OnValidate()
     {
@@ -60,6 +67,9 @@ public class Game : MonoBehaviour
             trapCount += trapCountIncrease;
             flagCount += trapCountIncrease;
         }
+
+        initialSkullPosition = skullImage.localPosition;
+        initialSkullScale = skullImage.localScale;
     }
 
     private void Start()
@@ -76,7 +86,7 @@ public class Game : MonoBehaviour
         else
         {
             Debug.LogWarning("Player GameObject not found!");
-        }
+        }        
     }
 
     private void InitializeCharacter()
@@ -95,7 +105,7 @@ public class Game : MonoBehaviour
                 Debug.LogWarning("MystBehaviour not found on player GameObject!");
             }
         }
-        else if (characterIndex == 3) //Goblin
+        else if (characterIndex == 3) //Gale
         {
             gale = player.GetComponent<GaleBehaviour>();
             if (gale != null)
@@ -105,6 +115,18 @@ public class Game : MonoBehaviour
             else
             {
                 Debug.LogWarning("GaleBehaviour not found on player GameObject!");
+            }
+        }
+        else if (characterIndex == 4) //Goblin
+        {
+            goblin = player.GetComponent<GoblinBehaviour>();
+            if (goblin != null)
+            {
+                Debug.Log("goblin object found: " + goblin.gameObject.name);
+            }
+            else
+            {
+                Debug.LogWarning("GoblinBehaviour not found on player GameObject!");
             }
         }
         else
@@ -126,8 +148,16 @@ public class Game : MonoBehaviour
         grid = new CellGrid(width, height);
         board.Draw(grid);
 
-        magicBlock.SetActive(true);
+        if (!magicBlock.activeSelf)
+        {
+            magicBlock.SetActive(true);
+        }
+
         player.transform.position = startPos;
+
+        //skullImage.localPosition = initialSkullPosition;
+        //skullImage.localScale = initialSkullScale;
+        StartCoroutine(AnimateSkull(initialSkullPosition, initialSkullScale, 0.5f));
 
         flagCount = trapCount;
 
@@ -266,9 +296,11 @@ public class Game : MonoBehaviour
         }
         else if (CharacterManager.selectedCharacterIndex == 4) //Goblin
         {
-            if (Random.Range(0, 2) == 0)
+            float randomValue = Random.Range(0f, 1f); // Generate a random float between 0 and 1
+            if (randomValue > goblin.goblinsLuck)
             {
                 TriggerGameOver(cell);
+                ScreenShake.Instance.TriggerShake(.3f, .2f);
                 AudioManager.Instance.PlaySound(AudioManager.SoundType.ShuffExplotion, 1f);
             }
             else
@@ -284,12 +316,14 @@ public class Game : MonoBehaviour
         }
     }
 
+
     private void FlagCell(Cell cell)
     {
         cell.flagged = true;
         cell.revealed = true;
         flagCount -= 1;
         CheckWinConditionFlags();
+        CheckWinCondition();
     }
 
     private void TriggerGameOver(Cell cell)
@@ -298,6 +332,12 @@ public class Game : MonoBehaviour
         lostPanel.SetActive(true);
         ScreenShake.Instance.TriggerShake(.2f, .3f);
         gameover = true;
+
+        //skullImage.localPosition = new Vector3(0, 0, 0); // Center of the screen
+        //skullImage.localScale = initialSkullScale * 3; // Scale x3
+
+        StartCoroutine(AnimateSkull(new Vector3(0, 0, 0), initialSkullScale * 3, 0.5f));
+
         AudioManager.Instance.PlaySound(AudioManager.SoundType.LoseStepOnTrap, Random.Range(0.9f, 1.1f));
         cell.exploded = true;
         cell.revealed = true;
@@ -341,7 +381,6 @@ public class Game : MonoBehaviour
             WinGame();
         }
     }
-
     public void CheckWinConditionFlags()
     {
         bool allMinesFlagged = true;
@@ -374,7 +413,6 @@ public class Game : MonoBehaviour
             WinGame();
         }
     }
-
     private void WinGame()
     {
         Debug.Log("Winner!");
@@ -416,4 +454,23 @@ public class Game : MonoBehaviour
         trapText.text = "Traps: " + trapCount;
         flagText.text = "Flags: " + flagCount;
     }
+
+    private IEnumerator AnimateSkull(Vector3 targetPosition, Vector3 targetScale, float duration)
+    {
+        Vector3 startPosition = skullImage.localPosition;
+        Vector3 startScale = skullImage.localScale;
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            skullImage.localPosition = Vector3.Lerp(startPosition, targetPosition, elapsed / duration);
+            skullImage.localScale = Vector3.Lerp(startScale, targetScale, elapsed / duration);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        skullImage.localPosition = targetPosition;
+        skullImage.localScale = targetScale;
+    }
+
 }

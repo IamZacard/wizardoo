@@ -1,7 +1,6 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.Tilemaps;
-using UnityEngine.SceneManagement;
 using System.Collections;
 
 public class PlayerController : MonoBehaviour
@@ -10,6 +9,8 @@ public class PlayerController : MonoBehaviour
     private SpriteRenderer sr;
     private Rigidbody2D rb;
     private Game gameRules;
+    private Shrine shrine;
+    public bool activePlayer;
 
     [SerializeField] private Transform effectPoint;
     [SerializeField] private GameObject flagEffect;
@@ -35,16 +36,20 @@ public class PlayerController : MonoBehaviour
     private Board board;
     private Coroutine alphaCoroutine;
 
+    [SerializeField] private Texture2D cellSelectionCursor;
+
     private void Awake()
     {
         controls = new PlayerMovement();
         rb = GetComponent<Rigidbody2D>();
 
-        // Find GameObjects with the corresponding tags and get Tilemap components
+        activePlayer = true;
+
         GameObject boardObject = GameObject.FindGameObjectWithTag("Board");
         GameObject roomObject = GameObject.FindGameObjectWithTag("Room");
         GameObject wallObject = GameObject.FindGameObjectWithTag("Wall");
         GameObject gameRulesObject = GameObject.FindGameObjectWithTag("GameRules");
+        GameObject shr1ne = GameObject.FindGameObjectWithTag("Shrine");
 
         if (boardObject != null)
         {
@@ -83,7 +88,15 @@ public class PlayerController : MonoBehaviour
             Debug.LogWarning("No GameObject with tag 'GameRules' found!");
         }
 
-        // Find the TextMeshProUGUI component with the specified tag
+        if (shr1ne != null)
+        {
+            shrine = shr1ne.GetComponent<Shrine>();
+        }
+        else
+        {
+            Debug.LogWarning("No GameObject with tag 'Shrine' found!");
+        }
+
         deathCount = GameObject.FindGameObjectWithTag("DeathCount")?.GetComponent<TextMeshProUGUI>();
         if (deathCount != null)
         {
@@ -117,17 +130,41 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
+        if (!activePlayer) return; // Prevent any actions if the player is not active
+
         FlagCell();
 
-        if (gameRules.gameover && !deathCountIncreased)
+        if (gameRules != null && gameRules.gameover && !deathCountIncreased)
         {
             IncreaseDeathCount();
         }
 
-        if (Input.GetKeyDown(KeyCode.N) || Input.GetKeyDown(KeyCode.R) || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space))
+        if (activePlayer && (Input.GetKeyDown(KeyCode.N) || Input.GetKeyDown(KeyCode.R) || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space)))
         {
             deathCountIncreased = false;
             restartCount++;
+            activePlayer = true;
+        }
+
+        if (shrine != null && shrine.usingShrine && Input.GetKeyDown(KeyCode.E) && shrine.HasCharges())
+        {
+            activePlayer = false;
+            shrine.shrineCellSelection = true;
+        }
+
+        if (shrine != null && shrine.shrineCellSelection && shrine.HasCharges())
+        {
+            Vector2 cursorHotspot = new Vector2(cellSelectionCursor.width / 2, cellSelectionCursor.height / 2);
+            Cursor.SetCursor(cellSelectionCursor, cursorHotspot, CursorMode.Auto);
+
+            if (Input.GetMouseButtonDown(0))
+            {
+                RevealCell();
+            }
+        }
+        else
+        {
+            Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
         }
 
         TrackTimeOnTile();
@@ -135,6 +172,8 @@ public class PlayerController : MonoBehaviour
 
     private void TrackTimeOnTile()
     {
+        if (groundTileMap == null) return;
+
         Vector3Int newCellPosition = groundTileMap.WorldToCell(transform.position);
 
         if (newCellPosition != currentCellPosition)
@@ -153,7 +192,7 @@ public class PlayerController : MonoBehaviour
             if (IsNumberTile(currentCellPosition))
             {
                 timeSpentOnTile += Time.deltaTime;
-                if (timeSpentOnTile >= requiredTimeOnTile && alphaCoroutine == null && !gameRules.levelComplete)
+                if (timeSpentOnTile >= requiredTimeOnTile && alphaCoroutine == null && gameRules != null && !gameRules.levelComplete)
                 {
                     alphaCoroutine = StartCoroutine(PulseAlpha());
                 }
@@ -163,7 +202,7 @@ public class PlayerController : MonoBehaviour
 
     private bool IsNumberTile(Vector3Int cellPosition)
     {
-        if (board == null) return false;
+        if (board == null || groundTileMap == null) return false;
 
         TileBase tile = groundTileMap.GetTile(cellPosition);
         return tile == board.tileNum1 || tile == board.tileNum2 || tile == board.tileNum3 ||
@@ -178,6 +217,7 @@ public class PlayerController : MonoBehaviour
 
     private void SetCharacterAlpha(byte alpha)
     {
+        if (sr == null) return;
         Color color = sr.color;
         color.a = alpha / 255f;
         sr.color = color;
@@ -196,7 +236,14 @@ public class PlayerController : MonoBehaviour
 
     private void Move(Vector2 direction)
     {
-        if (CanMove(direction) && !gameRules.gameover)
+        if (!activePlayer) return; // Prevent playerController if the player is not active
+
+        if (shrine != null && shrine.shrineCellSelection || gameRules != null && gameRules.gameover)
+        {
+            return;
+        }
+
+        if (CanMove(direction))
         {
             if (alphaCoroutine != null)
             {
@@ -225,59 +272,47 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    private void OnCollisionEnter2D(Collision2D collision)
-    {
-        if (collision.gameObject.CompareTag("MagicBlock"))
-        {
-            transform.position = SnapPosition(transform.position); // Apply snapping on collision
-        }
-    }
-
-
     private bool CanMove(Vector2 direction)
     {
-        // Convert the player's potential grid position on the groundTileMap
-        Vector3Int groundGridPosition = groundTileMap.WorldToCell(transform.position + (Vector3)direction);
+        if (groundTileMap == null || colissionTileMap == null) return false;
 
-        // Check if the ground tile is present and there are no collision tiles on the groundTileMap
+        Vector3Int groundGridPosition = groundTileMap.WorldToCell(transform.position + (Vector3)direction);
         bool canMoveOnGround = groundTileMap.HasTile(groundGridPosition) && !colissionTileMap.HasTile(groundGridPosition);
 
-        // If roomTileMap is not null and active, check for movement on the roomTileMap
         if (roomTileMap != null && roomTileMap.gameObject.activeSelf)
         {
-            // Convert the player's potential grid position on the roomTileMap
             Vector3Int roomGridPosition = roomTileMap.WorldToCell(transform.position + (Vector3)direction);
-
-            // Check if the room tile is present and there are no collision tiles on the roomTileMap
             bool canMoveInRoom = roomTileMap.HasTile(roomGridPosition) && !colissionTileMap.HasTile(roomGridPosition);
 
-            // Return true if movement is allowed on the roomTileMap
             if (canMoveInRoom)
             {
                 return true;
             }
         }
 
-        // Return true if movement is allowed on the groundTileMap
         return canMoveOnGround;
     }
 
     private Vector3 SnapPosition(Vector3 position)
     {
+        position.x = Mathf.Round(position.x * 2f) / 2f;
         position.y = Mathf.Round(position.y * 2f) / 2f;
         return position;
     }
 
     private IEnumerator ScaleCharacter()
     {
-        // Scale down to scaleNumber
         transform.localScale = originalScale * scaleNumber;
-
-        // Wait for N seconds
         yield return new WaitForSeconds(0.3f);
-
-        // Scale back to original
         transform.localScale = originalScale;
+    }
+
+    private void OnCollisionEnter2D(Collision2D other)
+    {
+        if (other.gameObject.CompareTag("MagicBlock"))
+        {
+            transform.position = SnapPosition(transform.position);
+        }
     }
 
     private void OnCollisionExit2D(Collision2D other)
@@ -292,28 +327,106 @@ public class PlayerController : MonoBehaviour
             Destroy(other.gameObject);
             Instantiate(pickUpEffect, effectPoint.position, Quaternion.identity);
             AudioManager.Instance.PlaySound(AudioManager.SoundType.GalePickUp, Random.Range(.1f, 1.5f));
-
-            // Load the mini-game scene
-            //SceneManager.LoadScene("Mini-Game_Scene", LoadSceneMode.Additive);
         }
     }
 
     public void FlagCell()
     {
-        if (Input.GetMouseButtonDown(1) && gameRules.flagCount > 0 && gameRules.canFlag && !gameRules.gameover && !gameRules.levelComplete)
+        if (!activePlayer) return; // Prevent flagging if the player is not active
+
+        if (Input.GetMouseButtonDown(1) && gameRules != null && gameRules.flagCount > 0 && gameRules.canFlag && !gameRules.gameover && !gameRules.levelComplete)
         {
             Instantiate(flagEffect, effectPoint.position, Quaternion.identity);
-            // Decrement flag count or update game state as needed
         }
     }
 
     private void IncreaseDeathCount()
     {
-        // Increase the death count when game over
         CharacterManager.deathCount++;
         deathCountIncreased = true;
 
-        deathCount.text = "Death count: " + CharacterManager.deathCount;
+        if (deathCount != null)
+        {
+            deathCount.text = "Death \ncount: " + CharacterManager.deathCount;
+            StartCoroutine(ScaleText(deathCount, deathCount.transform.localScale * 2, 0.5f));
+        }
+
         Debug.Log("Death count increased. Total deaths: " + CharacterManager.deathCount);
+    }
+
+    private IEnumerator ScaleText(TextMeshProUGUI text, Vector3 targetScale, float duration)
+    {
+        Vector3 originalScale = text.transform.localScale;
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            text.transform.localScale = Vector3.Lerp(originalScale, targetScale, elapsed / duration);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        text.transform.localScale = targetScale;
+        yield return new WaitForSeconds(0.5f);
+
+        elapsed = 0f;
+        while (elapsed < duration)
+        {
+            text.transform.localScale = Vector3.Lerp(targetScale, originalScale, elapsed / duration);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        text.transform.localScale = originalScale;
+    }
+
+    private void RevealCell()
+    {
+        if (groundTileMap == null || shrine == null || gameRules == null || !shrine.HasCharges()) return;
+
+        Vector3 mouseWorldPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+        Vector3Int cellPos = groundTileMap.WorldToCell(mouseWorldPos);
+
+        if (groundTileMap.HasTile(cellPos) && (roomTileMap == null || !roomTileMap.HasTile(cellPos)) && !colissionTileMap.HasTile(cellPos))
+        {
+            Cell cell;
+            if (gameRules.grid.TryGetCell(cellPos.x, cellPos.y, out cell))
+            {
+                if (cell.type == Cell.Type.Mine && !cell.revealed && !cell.flagged)
+                {
+                    Debug.Log("Flagging trap cell at: " + cellPos);
+
+                    cell.flagged = true;
+                    shrine.UseCharge();
+                    board.Draw(gameRules.grid);
+
+                    AudioManager.Instance.PlaySound(AudioManager.SoundType.BoardRevealSound, Random.Range(.8f, 1.2f));
+
+                    shrine.shrineCellSelection = false;
+                    gameRules.flagCount--;
+                    Debug.Log("Flag count after flagging: " + gameRules.flagCount);
+                }
+                else
+                {
+                    Debug.Log("Revealing cell at: " + cellPos);
+
+                    gameRules.Reveal(cell);
+                    shrine.shrineCellSelection = false;
+                    shrine.UseCharge();
+
+                    AudioManager.Instance.PlaySound(AudioManager.SoundType.BoardRevealSound, Random.Range(.8f, 1.2f));
+
+                    board.Draw(gameRules.grid);
+                }
+
+                StartCoroutine(activatePlayer());
+            }
+        }
+    }
+
+    IEnumerator activatePlayer()
+    {
+        yield return new WaitForSeconds(0.5f);
+        activePlayer = true;
     }
 }

@@ -20,6 +20,8 @@ TagManager:
   - JumpyChest
   - Room
   - MusicManager
+  - Shrine
+  - Gene
   layers:
   - Default
   - TransparentFX

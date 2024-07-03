@@ -7,10 +7,11 @@ using System.Collections;
 public class MystBehaviour : MonoBehaviour
 {
     public bool invincible;
-    public int stepsOfInvi = 5;
+    public int stepsOfInvi = 7; // Default steps
     private int moveCount;
-    private bool abilityUsed;
+    private int charges; // Number of charges
     private Game gameRules;
+    private PlayerController playerController;
 
     [SerializeField] private Image spellIcon;
     public Color readyColor = Color.white;
@@ -24,11 +25,23 @@ public class MystBehaviour : MonoBehaviour
     public GameObject inviEffectPrefab;
     private GameObject inviEffectInstance;
 
+    // References for the upgrade panel and buttons
+    public GameObject upgradePanel;
+    public Button upgradeButton1;
+    public Button upgradeButton2;
+    public Button upgradeButton3;
+
+    private Vector3 originalScale;
+
     private void Start()
     {
         invincible = false;
         moveCount = 0;
-        abilityUsed = false;
+
+        // Load the number of charges from PlayerPrefs
+        charges = PlayerPrefs.GetInt("MystCharges", 1);
+
+        upgradePanel.SetActive(false);
 
         anim = GetComponent<Animator>();
         gameRules = GameObject.FindGameObjectWithTag("GameRules")?.GetComponent<Game>();
@@ -50,7 +63,23 @@ public class MystBehaviour : MonoBehaviour
             Debug.LogWarning("TextMeshProUGUI component with the specified tag not found!");
         }
 
+        playerController = GameObject.FindGameObjectWithTag("Player")?.GetComponent<PlayerController>();
+        if (charactersText == null)
+        {
+            Debug.LogWarning("No GameObject with tag 'Player' found!");
+        }
+
         UpdateSpellIcon();
+        SetButtonLabels();
+
+        // Listen to the UpgradeReady event from the UpgradeManager
+        UpgradeManager.Instance.OnUpgradeReady.AddListener(OpenUpgradePanel);
+
+        // Initialize originalScale
+        if (upgradeButton1 != null)
+        {
+            originalScale = upgradeButton1.GetComponent<RectTransform>().localScale;
+        }
     }
 
     private void Update()
@@ -68,7 +97,8 @@ public class MystBehaviour : MonoBehaviour
             UpdateSpellIcon();
         }
 
-        if (Input.GetMouseButtonDown(0) && !EventSystem.current.IsPointerOverGameObject() && !invincible && !abilityUsed && !gameRules.gameover)
+        // Ensure the shrine is not active before activating the ability
+        if (Input.GetMouseButtonDown(0) && playerController.activePlayer && !EventSystem.current.IsPointerOverGameObject() && !invincible && charges > 0 && !gameRules.gameover)
         {
             ActivateInvincibility();
         }
@@ -79,11 +109,12 @@ public class MystBehaviour : MonoBehaviour
         }
     }
 
+
     private void ActivateInvincibility()
     {
         invincible = true;
         moveCount = 0;
-        abilityUsed = true;
+        charges--;
 
         anim.SetBool("Invincible", true);
         AudioManager.Instance.PlaySound(AudioManager.SoundType.MysticInvincible, 1f);
@@ -94,6 +125,8 @@ public class MystBehaviour : MonoBehaviour
             inviEffectInstance = Instantiate(inviEffectPrefab, transform);
             inviEffectInstance.transform.localPosition = Vector3.zero;
         }
+
+        UpdateSpellIcon();
     }
 
     private void DisableInvincibility()
@@ -102,11 +135,15 @@ public class MystBehaviour : MonoBehaviour
         moveCount = 0;
 
         anim.SetBool("Invincible", false);
-        charactersText.text = "Care! You are not invincible anymore!";
 
         if (inviEffectInstance != null)
         {
             Destroy(inviEffectInstance);
+        }
+
+        if (charges <= 0)
+        {
+            charactersText.text = "Care! You are not invincible anymore!";
         }
     }
 
@@ -133,9 +170,9 @@ public class MystBehaviour : MonoBehaviour
 
     public void ResetAbility()
     {
-        abilityUsed = false;
         invincible = false;
         moveCount = 0;
+        charges = PlayerPrefs.GetInt("MystCharges", 1); // Reset charges to saved value
 
         anim.SetBool("Invincible", false);
         charactersText.text = "Activate ability to become INVINCIBLE";
@@ -151,18 +188,19 @@ public class MystBehaviour : MonoBehaviour
             pulseCoroutine = null;
         }
 
+        UpdateSpellIcon();
         pulseCoroutine = StartCoroutine(PulseIcon());
     }
 
     private void UpdateSpellIcon()
     {
-        spellIcon.color = abilityUsed ? notReadyColor : readyColor;
+        spellIcon.color = (charges > 0) ? readyColor : notReadyColor;
 
-        if (!abilityUsed && pulseCoroutine == null)
+        if (charges > 0 && pulseCoroutine == null)
         {
             pulseCoroutine = StartCoroutine(PulseIcon());
         }
-        else if (abilityUsed && pulseCoroutine != null)
+        else if (charges == 0 && pulseCoroutine != null)
         {
             StopCoroutine(pulseCoroutine);
             pulseCoroutine = null;
@@ -180,6 +218,112 @@ public class MystBehaviour : MonoBehaviour
                 elapsedTime += Time.deltaTime;
                 yield return null;
             }
+        }
+    }
+
+    private void TwoCharges()
+    {
+        charges = 2;
+        PlayerPrefs.SetInt("MystCharges", charges); // Save the new default value
+        PlayerPrefs.Save();
+        Debug.Log("Mystic now has 2 charges of invincibility");
+    }
+
+    private void MoreSteps()
+    {
+        stepsOfInvi = 12;
+        Debug.Log("Mystic now has 12 steps of invincibility");
+    }
+
+    private void DisableMagicBlock()
+    {
+        GameObject magicBlock = GameObject.FindGameObjectWithTag("MagicBlock");
+        if (magicBlock != null)
+        {
+            magicBlock.SetActive(false);
+            Debug.Log("Magic block disabled");
+        }
+    }
+
+    private void OnDestroy()
+    {
+        // Unsubscribe from the UpgradeReady event when the object is destroyed
+        if (UpgradeManager.Instance != null)
+        {
+            UpgradeManager.Instance.OnUpgradeReady.RemoveListener(OpenUpgradePanel);
+        }
+    }
+
+    private void SetButtonLabels()
+    {
+        upgradeButton1.GetComponentInChildren<TextMeshProUGUI>().text = "You can become invincible twice!";
+        upgradeButton2.GetComponentInChildren<TextMeshProUGUI>().text = "You have 12 steps of invincibility";
+        upgradeButton3.GetComponentInChildren<TextMeshProUGUI>().text = "Disable Magic Block";
+    }
+
+    private void OpenUpgradePanel()
+    {
+        upgradePanel.SetActive(true);
+        upgradeButton1.onClick.AddListener(() => SelectUpgrade(1));
+        upgradeButton2.onClick.AddListener(() => SelectUpgrade(2));
+        upgradeButton3.onClick.AddListener(() => SelectUpgrade(3));
+    }
+
+    private void SelectUpgrade(int index)
+    {
+        Debug.Log("Upgrade option " + index + " selected.");
+        AudioManager.Instance.PlaySound(AudioManager.SoundType.ShuffProc, 1f);
+        upgradePanel.SetActive(false);
+
+        // Remove all listeners to avoid duplicate calls
+        upgradeButton1.onClick.RemoveAllListeners();
+        upgradeButton2.onClick.RemoveAllListeners();
+        upgradeButton3.onClick.RemoveAllListeners();
+
+        // Apply the selected upgrade logic
+        switch (index)
+        {
+            case 1:
+                TwoCharges();
+                break;
+            case 2:
+                MoreSteps();
+                break;
+            case 3:
+                DisableMagicBlock();
+                break;
+        }
+    }
+
+    public void ScaleOn(Button button)
+    {
+        StartCoroutine(ScaleButton(button.gameObject, originalScale, 1.25f));
+        AudioManager.Instance.PlaySound(AudioManager.SoundType.ButtonClick, 1f);
+    }
+
+    public void ScaleOff(Button button)
+    {
+        StartCoroutine(ScaleButton(button.gameObject, originalScale, 1f));
+    }
+
+    private IEnumerator ScaleButton(GameObject button, Vector3 originalScale, float scaleMultiplier)
+    {
+        RectTransform rectTransform = button.GetComponent<RectTransform>();
+        if (rectTransform != null)
+        {
+            Vector3 targetScale = originalScale * scaleMultiplier;
+            Vector3 startScale = rectTransform.localScale;
+            float elapsedTime = 0f;
+            float scaleDuration = 0.2f; // Duration of the scaling
+
+            while (elapsedTime < scaleDuration)
+            {
+                rectTransform.localScale = Vector3.Lerp(startScale, targetScale, elapsedTime / scaleDuration);
+                elapsedTime += Time.deltaTime;
+                yield return null;
+            }
+
+            rectTransform.localScale = targetScale;
         }
     }
 }

@@ -22,6 +22,7 @@ public class AudioManager : MonoBehaviour
         LevelComplete,
         LoseStepOnTrap,
         BoardRevealSound,
+        Success,
         // Add more sound types as needed
     }
 

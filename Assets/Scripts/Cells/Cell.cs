@@ -9,6 +9,7 @@ public class Cell
         Number,
         Floor,
         Pillar,
+        Shrine,
     }
 
     public Vector3Int position;
@@ -17,4 +18,5 @@ public class Cell
     public bool revealed;
     public bool flagged;
     public bool exploded;
+    public bool used;
 }
