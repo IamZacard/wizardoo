@@ -43,6 +43,7 @@ public class Shrine : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.N) || Input.GetKeyDown(KeyCode.R) || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space))
         {
             SetOrbsActive(true);
+            CancelShrineSelection();
 
             currentCharges = maxCharges;
 
@@ -61,7 +62,7 @@ public class Shrine : MonoBehaviour
             }
         }
 
-        if (Input.GetKeyDown(KeyCode.Escape))
+        if (usingShrine && Input.GetKeyDown(KeyCode.Escape))
         {
             CancelShrineSelection();
         }

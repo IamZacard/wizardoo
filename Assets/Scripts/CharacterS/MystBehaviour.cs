@@ -9,7 +9,7 @@ public class MystBehaviour : MonoBehaviour
     public bool invincible;
     public int stepsOfInvi = 7; // Default steps
     private int moveCount;
-    private int charges; // Number of charges
+    public int charges; // Number of charges
     private Game gameRules;
     private PlayerController playerController;
 
@@ -38,7 +38,11 @@ public class MystBehaviour : MonoBehaviour
         invincible = false;
         moveCount = 0;
 
-        // Load the number of charges from PlayerPrefs
+        // For debugging purposes, clear the saved charges
+        // Uncomment the next line to clear PlayerPrefs during debugging
+        PlayerPrefs.DeleteKey("MystCharges");
+
+        // Load the number of charges from PlayerPrefs, default to 1 if not set
         charges = PlayerPrefs.GetInt("MystCharges", 1);
 
         upgradePanel.SetActive(false);
@@ -108,7 +112,6 @@ public class MystBehaviour : MonoBehaviour
             ResetAbility();
         }
     }
-
 
     private void ActivateInvincibility()
     {
@@ -189,7 +192,6 @@ public class MystBehaviour : MonoBehaviour
         }
 
         UpdateSpellIcon();
-        pulseCoroutine = StartCoroutine(PulseIcon());
     }
 
     private void UpdateSpellIcon()
@@ -200,7 +202,7 @@ public class MystBehaviour : MonoBehaviour
         {
             pulseCoroutine = StartCoroutine(PulseIcon());
         }
-        else if (charges == 0 && pulseCoroutine != null)
+        else if (charges <= 0 && pulseCoroutine != null)
         {
             StopCoroutine(pulseCoroutine);
             pulseCoroutine = null;
@@ -272,7 +274,7 @@ public class MystBehaviour : MonoBehaviour
     private void SelectUpgrade(int index)
     {
         Debug.Log("Upgrade option " + index + " selected.");
-        AudioManager.Instance.PlaySound(AudioManager.SoundType.ShuffProc, 1f);
+        //AudioManager.Instance.PlaySound(AudioManager.SoundType.ShuffProc, 1f);
         upgradePanel.SetActive(false);
 
         // Remove all listeners to avoid duplicate calls
@@ -293,6 +295,9 @@ public class MystBehaviour : MonoBehaviour
                 DisableMagicBlock();
                 break;
         }
+
+        // Ensure the pulse coroutine is managed correctly
+        UpdateSpellIcon();
     }
 
     public void ScaleOn(Button button)

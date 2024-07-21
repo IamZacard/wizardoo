@@ -126,49 +126,78 @@ public class PlayerController : MonoBehaviour
         Debug.Log("Start");
 
         originalScale = transform.localScale;
+
+        // Register to the upgrade ready event
+        if (UpgradeManager.Instance != null)
+        {
+            UpgradeManager.Instance.ZephyrTrigger.AddListener(OnZephyrTrigger);
+            UpgradeManager.Instance.SorayaTrigger.AddListener(OnSorayaTrigger);
+        }
+        else
+        {
+            Debug.LogError("UpgradeManager.Instance is null!");
+        }
     }
 
     private void Update()
     {
-        if (!activePlayer) return; // Prevent any actions if the player is not active
+        if (Input.GetKeyDown(KeyCode.N) || Input.GetKeyDown(KeyCode.R) || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space))
+        {
+            Debug.Log("Restart game key pressed");
+            activePlayer = true;
+            deathCountIncreased = false;
+            restartCount++;
+
+            if (shrine?.shrineCellSelection == true)
+            {
+                Debug.Log("Canceling shrine selection");
+                shrine.CancelShrineSelection();
+                Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
+            }
+            // Additional restart logic here
+            if (deathCount.transform.localScale != Vector3.one)
+            {
+                deathCount.transform.localScale = new Vector3(1, 1, 1);
+            }
+        }
+
+        if (!activePlayer) return;
 
         FlagCell();
 
-        if (gameRules != null && gameRules.gameover && !deathCountIncreased)
+        if (gameRules?.gameover == true && !deathCountIncreased)
         {
             IncreaseDeathCount();
         }
 
-        if (activePlayer && (Input.GetKeyDown(KeyCode.N) || Input.GetKeyDown(KeyCode.R) || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space)))
+        if (shrine?.usingShrine == true && Input.GetKeyDown(KeyCode.E) && shrine.HasCharges())
         {
-            deathCountIncreased = false;
-            restartCount++;
-            activePlayer = true;
-        }
-
-        if (shrine != null && shrine.usingShrine && Input.GetKeyDown(KeyCode.E) && shrine.HasCharges())
-        {
+            Debug.Log("Activating shrine cell selection");
             activePlayer = false;
             shrine.shrineCellSelection = true;
         }
 
-        if (shrine != null && shrine.shrineCellSelection && shrine.HasCharges())
+        if (shrine?.shrineCellSelection == true && shrine.HasCharges())
         {
             Vector2 cursorHotspot = new Vector2(cellSelectionCursor.width / 2, cellSelectionCursor.height / 2);
             Cursor.SetCursor(cellSelectionCursor, cursorHotspot, CursorMode.Auto);
+            activePlayer = false;
 
             if (Input.GetMouseButtonDown(0))
             {
+                Debug.Log("Mouse button clicked, attempting to reveal cell");
                 RevealCell();
             }
         }
         else
         {
             Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
+            activePlayer = true;
         }
 
         TrackTimeOnTile();
     }
+
 
     private void TrackTimeOnTile()
     {
@@ -243,6 +272,12 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
+        // Ensure only one direction is processed at a time
+        direction = new Vector2(
+            direction.x != 0 ? Mathf.Sign(direction.x) : 0,
+            direction.y != 0 ? Mathf.Sign(direction.y) : 0
+        );
+
         if (CanMove(direction))
         {
             if (alphaCoroutine != null)
@@ -255,11 +290,11 @@ public class PlayerController : MonoBehaviour
             Vector3 stepPosition = transform.position + new Vector3(0f, -0.24f, 0f);
             Instantiate(stepEffect, stepPosition, Quaternion.identity);
             AudioManager.Instance.PlaySound(AudioManager.SoundType.FootStepSound, Random.Range(1.5f, 1.9f));
+            ScreenShake.Instance.TriggerShake(.01f, .05f);
 
-            transform.position += (Vector3)direction;
-            transform.position = SnapPosition(transform.position); // Apply snapping here
-
-            StartCoroutine(ScaleCharacter()); // Scale character on move
+            // Perform the jump
+            Vector3 targetPosition = transform.position + (Vector3)direction;
+            StartCoroutine(JumpToPosition(targetPosition)); // Ensure this is the only call to JumpToPosition
 
             if (direction.x > 0)
             {
@@ -271,6 +306,47 @@ public class PlayerController : MonoBehaviour
             }
         }
     }
+
+    private IEnumerator JumpToPosition(Vector3 targetPosition)
+    {
+        float jumpHeight = 0.4f; // Height of the jump
+        float jumpDuration = 0.05f; // Duration of the jump
+        Vector3 startPosition = transform.position;
+        Vector3 peakPosition = startPosition + new Vector3(0, jumpHeight, 0);
+
+        // Move to peak position
+        float elapsed = 0f;
+        while (elapsed < jumpDuration / 2)
+        {
+            transform.position = Vector3.Lerp(startPosition, peakPosition, elapsed / (jumpDuration / 2));
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        // Move to target position
+        elapsed = 0f;
+        while (elapsed < jumpDuration / 2)
+        {
+            transform.position = Vector3.Lerp(peakPosition, targetPosition, elapsed / (jumpDuration / 2));
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        // Snap to final position
+        transform.position = SnapPosition(targetPosition);
+
+        // Scale character after jump
+        StartCoroutine(ScaleCharacter());
+    }
+
+    private Vector3 SnapPosition(Vector3 position)
+    {
+        // Snapping to the nearest half unit grid (0.5 units)
+        position.x = Mathf.Floor(position.x) + 0.5f;
+        position.y = Mathf.Floor(position.y) + 0.5f;
+        return position;
+    }
+
 
     private bool CanMove(Vector2 direction)
     {
@@ -291,13 +367,6 @@ public class PlayerController : MonoBehaviour
         }
 
         return canMoveOnGround;
-    }
-
-    private Vector3 SnapPosition(Vector3 position)
-    {
-        position.x = Mathf.Round(position.x * 2f) / 2f;
-        position.y = Mathf.Round(position.y * 2f) / 2f;
-        return position;
     }
 
     private IEnumerator ScaleCharacter()
@@ -382,7 +451,11 @@ public class PlayerController : MonoBehaviour
 
     private void RevealCell()
     {
-        if (groundTileMap == null || shrine == null || gameRules == null || !shrine.HasCharges()) return;
+        if (groundTileMap == null || shrine == null || gameRules == null || !shrine.HasCharges())
+        {
+            Debug.LogWarning("One or more components are null or no charges left");
+            return;
+        }
 
         Vector3 mouseWorldPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
         Vector3Int cellPos = groundTileMap.WorldToCell(mouseWorldPos);
@@ -423,7 +496,15 @@ public class PlayerController : MonoBehaviour
             }
         }
     }
+    private void OnZephyrTrigger()
+    {
+        // Your logic for ZephyrTrigger
+    }
 
+    private void OnSorayaTrigger()
+    {
+        // Your logic for SorayaTrigger
+    }
     IEnumerator activatePlayer()
     {
         yield return new WaitForSeconds(0.5f);

@@ -46,7 +46,8 @@ public class Game : MonoBehaviour
     private Board board;
     public CellGrid grid;
 
-    
+    public int currentLevel;
+
     private MystBehaviour myst;
     private GaleBehaviour gale;
     private GoblinBehaviour goblin;
@@ -139,7 +140,16 @@ public class Game : MonoBehaviour
     {
         StopAllCoroutines();
 
-        Camera.main.transform.position = new Vector3(width / 2f, height / 2f, -10f);
+        //Camera.main.transform.position = new Vector3(width / 2f, height / 2f, -10f);
+        // Set the camera position based on the level
+        if (currentLevel == 7)
+        {
+            Camera.main.transform.position = new Vector3(7.5f, 3.5f, -10f);
+        }
+        else
+        {
+            Camera.main.transform.position = new Vector3(width / 2f, height / 2f, -10f);
+        }
 
         gameover = false;
         levelComplete = false;

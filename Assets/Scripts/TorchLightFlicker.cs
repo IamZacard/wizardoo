@@ -13,6 +13,9 @@ public class Light2DFlickerController : MonoBehaviour
     private float flickerIntensityRange;
     private float flickerIntensitySpeed;
 
+    public float minIntensity = .1f;
+    public float maxIntensity = .8f;
+
     void Start()
     {
         light2D = GetComponent<Light2D>();
@@ -28,7 +31,7 @@ public class Light2DFlickerController : MonoBehaviour
 
         // Randomize flicker parameters
         flickerIntensityRange = Random.Range(0.5f, 1.0f); // Random flicker intensity range
-        flickerIntensitySpeed = Random.Range(1.0f, 2.0f); // Random flicker intensity speed
+        flickerIntensitySpeed = Random.Range(0.8f, 1.0f); // Random flicker intensity speed
 
         StartCoroutine(FlickerCoroutine());
     }
@@ -39,11 +42,9 @@ public class Light2DFlickerController : MonoBehaviour
         {
             // Calculate new intensity based on flicker effect
             float newIntensity = originalIntensity + Mathf.Sin(Time.time * flickerIntensitySpeed) * flickerIntensityRange; // Example of a sinusoidal flicker
-            targetIntensity = Mathf.Lerp(targetIntensity, newIntensity, Time.deltaTime * 5f); // Smoothly transition to the new intensity
+            newIntensity = Mathf.Clamp(newIntensity, minIntensity, maxIntensity); // Clamp the intensity to the range [minIntensity, maxIntensity]
 
-            // Ensure intensity doesn't fall below a minimum value
-            float minIntensity = 0.1f; // Adjust as necessary
-            targetIntensity = Mathf.Max(targetIntensity, minIntensity);
+            targetIntensity = Mathf.Lerp(targetIntensity, newIntensity, Time.deltaTime * 5f); // Smoothly transition to the new intensity
 
             // Apply the flicker effect to the Light2D component
             light2D.intensity = targetIntensity;

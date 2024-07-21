@@ -309,7 +309,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 0, y: 0, z: 0, w: 0}
+  m_margin: {x: 10.041752, y: 0, z: 10.041836, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0
@@ -579,7 +579,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 0, y: 0, z: 0, w: 0}
+  m_margin: {x: 10.041714, y: 0, z: 8.368173, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0
@@ -1149,7 +1149,7 @@ MonoBehaviour:
   stepEffect: {fileID: 5402626375564937643, guid: 322962f5f36a0ed41885925ecde01aa7, type: 3}
   pickUpEffect: {fileID: 2523934970238192594, guid: 9132629e6699aa24ab4c72d72c376eee, type: 3}
   scaleNumber: 1.2
-  cellSelectionCursor: {fileID: 2800000, guid: f7069f53771c16c4ca6b3281c852ca35, type: 3}
+  cellSelectionCursor: {fileID: 2800000, guid: d949c2fb405778d48a1d0436f306bb76, type: 3}
 --- !u!114 &943908594132768931
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1164,6 +1164,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   invincible: 0
   stepsOfInvi: 7
+  charges: 0
   spellIcon: {fileID: 7493282533707943784}
   readyColor: {r: 1, g: 1, b: 1, a: 1}
   notReadyColor: {r: 0.19607843, g: 0.19607843, b: 0.19607843, a: 1}
@@ -1773,7 +1774,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 0, y: 0, z: 0, w: 0}
+  m_margin: {x: 5.5976486, y: 0, z: 5.597496, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0

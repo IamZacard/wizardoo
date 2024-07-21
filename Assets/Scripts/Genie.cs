@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using TMPro;
 using System.Collections;
 using UnityEngine.Events;
+using Unity.VisualScripting;
 
 public class Genie : MonoBehaviour
 {
@@ -18,6 +19,8 @@ public class Genie : MonoBehaviour
     private Vector3 dialogBoxStartPosition = new Vector3(0, -925, 0);
     private Vector3 dialogBoxEndPosition = new Vector3(0, -480, 0);
     private PlayerController Player;
+    private Animator anim;
+    private SpriteRenderer spriteRenderer;
 
     private void Start()
     {
@@ -30,6 +33,9 @@ public class Genie : MonoBehaviour
         }
 
         Player = GameObject.FindGameObjectWithTag("Player")?.GetComponent<PlayerController>();
+
+        anim = GetComponent<Animator>();
+        spriteRenderer = GetComponent<SpriteRenderer>();
     }
 
     private void Update()
@@ -65,6 +71,11 @@ public class Genie : MonoBehaviour
             isDialogOpen = false;
             playerInRange = false;
         }
+
+        if (playerInRange)
+        {
+            FlipTowardsPlayer();
+        }
     }
 
     private void OnTriggerEnter2D(Collider2D collision)
@@ -72,6 +83,8 @@ public class Genie : MonoBehaviour
         if (collision.CompareTag("Player"))
         {
             playerInRange = true;
+
+            TalkState();
 
             // Show the activateKey only if the dialogue has not been triggered yet
             if (activateKey != null && !dialogTriggered)
@@ -86,6 +99,8 @@ public class Genie : MonoBehaviour
         if (collision.CompareTag("Player"))
         {
             playerInRange = false;
+
+            DefaultState();
 
             if (activateKey != null)
             {
@@ -128,5 +143,32 @@ public class Genie : MonoBehaviour
 
         // Trigger the UpgradeReady event
         UpgradeManager.Instance.OnUpgradeReady.Invoke();
+    }
+
+    private void TalkState()
+    {
+        anim.SetBool("Talking", true);
+    }
+
+    private void DefaultState()
+    {
+        anim.SetBool("Talking", false);
+    }
+    private void FlipTowardsPlayer()
+    {
+        if (Player != null)
+        {
+            Vector3 playerPosition = Player.transform.position;
+            Vector3 sorayaPosition = transform.position;
+
+            if (playerPosition.x > sorayaPosition.x)
+            {
+                spriteRenderer.flipX = true; // Face right
+            }
+            else if (playerPosition.x < sorayaPosition.x)
+            {
+                spriteRenderer.flipX = false; // Face left
+            }
+        }
     }
 }

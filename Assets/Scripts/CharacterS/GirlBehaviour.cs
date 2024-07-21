@@ -109,6 +109,7 @@ public class GirlBehaviour : MonoBehaviour
                         ScreenShake.Instance.TriggerShake(.05f, .5f);
                         AudioManager.Instance.PlaySound(AudioManager.SoundType.VioletTeleport, Random.Range(.7f, 1f));
 
+                        gameRules.CheckWinCondition();
                         // Check for chance to reveal adjacent cell
                         if (chanceToRevealCellSelected && Random.value <= chanceNumber && !IsCellRevealed(cellPosition))
                         {
@@ -144,7 +145,7 @@ public class GirlBehaviour : MonoBehaviour
     {
         // Get the type of cell at the given cell position
         Cell.Type cellType = board.GetCellType(cellPosition);
-
+        Debug.Log($"Cell Position: {cellPosition}, Cell Type: {cellType}");
         // Check if the cell type is not "Floor"
         return cellType != Cell.Type.Floor;
     }

@@ -43,7 +43,7 @@ public class CellGrid
                 y = Random.Range(0, height);
                 cell = cells[x, y];
             }
-            while (cell.type == Cell.Type.Mine || IsAdjacent(startingCell, cell) || cell.type == Cell.Type.Pillar);
+            while (cell.type == Cell.Type.Mine || IsAdjacent(startingCell, cell) || cell.type == Cell.Type.Pillar || cell.type == Cell.Type.Shrine);
 
             // Assign the cell as a mine
             cell.type = Cell.Type.Mine;

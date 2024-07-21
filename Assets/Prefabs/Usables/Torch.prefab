@@ -161,7 +161,7 @@ MonoBehaviour:
   m_DeprecatedPointLightCookieSprite: {fileID: 0}
   m_LightOrder: 0
   m_AlphaBlendOnOverlap: 0
-  m_OverlapOperation: 1
+  m_OverlapOperation: 0
   m_NormalMapDistance: 3
   m_NormalMapQuality: 2
   m_UseNormalMap: 0
@@ -198,3 +198,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f4bd0b86b17aca640acc8fb7b79cdc2d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  minIntensity: 0.1
+  maxIntensity: 0.5

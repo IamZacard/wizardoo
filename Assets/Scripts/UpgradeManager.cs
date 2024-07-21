@@ -5,6 +5,8 @@ public class UpgradeManager : MonoBehaviour
 {
     public static UpgradeManager Instance { get; private set; }
     public UnityEvent OnUpgradeReady;
+    public UnityEvent ZephyrTrigger;
+    public UnityEvent SorayaTrigger;
 
     private void Awake()
     {
@@ -21,5 +23,11 @@ public class UpgradeManager : MonoBehaviour
 
         if (OnUpgradeReady == null)
             OnUpgradeReady = new UnityEvent();
+
+        if (ZephyrTrigger == null)
+            ZephyrTrigger = new UnityEvent();
+
+        if (SorayaTrigger == null)
+            SorayaTrigger = new UnityEvent();
     }
 }

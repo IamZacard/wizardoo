@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -10,7 +11,6 @@ public class OldBehaviour : MonoBehaviour
     [SerializeField] private GameObject revealEffect;
     public float defaultRevealRadius = 1.5f; // Default radius within which cells will be revealed
     public float increasedRevealRadius = 2.5f; // Increased radius within which cells will be revealed
-    public int maxCastCount = 3; // Maximum number of times the ability can be cast
     public int currentCastCount = 0; // Current number of times the ability has been cast
 
     [SerializeField] private Image spellIcon; // Drag your spell icon Image here in the Inspector
@@ -25,7 +25,7 @@ public class OldBehaviour : MonoBehaviour
 
     private TextMeshProUGUI charactersText;
 
-    private int charges; // Number of charges
+    public int charges; // Number of charges
     private float currentRevealRadius; // Current reveal radius
 
     // References for the upgrade panel and buttons
@@ -87,7 +87,10 @@ public class OldBehaviour : MonoBehaviour
 
         charactersText.text = "Activate ability to reveal cells around";
 
-        // Load the number of charges from PlayerPrefs
+        // For debugging purposes, clear the saved charges
+        // Uncomment the next line to clear PlayerPrefs during debugging
+        PlayerPrefs.DeleteKey("revealCharges");
+        // Load the number of charges from PlayerPrefs if available, otherwise use default
         charges = PlayerPrefs.GetInt("revealCharges", 1);
 
         // Set the default reveal radius
@@ -121,6 +124,7 @@ public class OldBehaviour : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.N) || Input.GetKeyDown(KeyCode.R) || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space))
         {
             currentCastCount = 0;
+            charges = PlayerPrefs.GetInt("revealCharges", 1);
             charactersText.text = "Activate ability to reveal cells around";
             spellIcon.color = readyColor;
             if (pulseCoroutine != null) StopCoroutine(pulseCoroutine);
@@ -224,8 +228,7 @@ public class OldBehaviour : MonoBehaviour
 
     private void TwoCharges()
     {
-        charges = 2;
-        PlayerPrefs.SetInt("revealCharges", charges); // Save the new default value
+        PlayerPrefs.SetInt("revealCharges", 2); // Save the new default value
         PlayerPrefs.Save();
         Debug.Log("Older now has 2 charges of reveal");
     }
@@ -257,8 +260,8 @@ public class OldBehaviour : MonoBehaviour
 
     private void SetButtonLabels()
     {
-        upgradeButton1.GetComponentInChildren<TextMeshProUGUI>().text = "You can reveal area 2 times";
-        upgradeButton2.GetComponentInChildren<TextMeshProUGUI>().text = "Reveal cells in a radius of 2";
+        upgradeButton1.GetComponentInChildren<TextMeshProUGUI>().text = "You can use your spell 2 times";
+        upgradeButton2.GetComponentInChildren<TextMeshProUGUI>().text = "Reveal cells in a radius of 2 cells around";
         upgradeButton3.GetComponentInChildren<TextMeshProUGUI>().text = "Disable Magic Block";
     }
 
@@ -273,7 +276,7 @@ public class OldBehaviour : MonoBehaviour
     private void SelectUpgrade(int index)
     {
         Debug.Log("Upgrade option " + index + " selected.");
-        AudioManager.Instance.PlaySound(AudioManager.SoundType.ShuffProc, 1f);
+        //AudioManager.Instance.PlaySound(AudioManager.SoundType.ShuffProc, 1f);
         upgradePanel.SetActive(false);
 
         // Remove all listeners to avoid duplicate calls

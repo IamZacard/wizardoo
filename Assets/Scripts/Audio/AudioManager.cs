@@ -23,6 +23,8 @@ public class AudioManager : MonoBehaviour
         LoseStepOnTrap,
         BoardRevealSound,
         Success,
+        PortalSound,
+        TalkSound,
         // Add more sound types as needed
     }
 
@@ -41,7 +43,7 @@ public class AudioManager : MonoBehaviour
     public Slider musicVolumeSlider;
     public Slider effectsVolumeSlider;
 
-    // Make sure to plug these in in the inspector.
+    // Ensure these are assigned in the inspector.
     public AudioSource musicPlayer;
     public AudioSource effectsPlayer;
 
@@ -53,9 +55,7 @@ public class AudioManager : MonoBehaviour
     public GameObject OptionsPanel;
     public GameObject HTPPanel;
 
-    //public static AudioManager instance;
-
-    [Range(0f, 1f)] // This attribute limits the range of volume between 0 and 1
+    [Range(0f, 1f)]
     public float volume = 1f; // Default volume value is 1 (maximum)
 
     public static AudioManager Instance
@@ -79,12 +79,12 @@ public class AudioManager : MonoBehaviour
     {
         if (instance != null && instance != this)
         {
-            Destroy(this.gameObject);
+            Destroy(gameObject);
             return;
         }
 
         instance = this;
-        DontDestroyOnLoad(this.gameObject);
+        DontDestroyOnLoad(gameObject);
 
         audioSource = GetComponent<AudioSource>();
         if (audioSource == null)
@@ -92,20 +92,17 @@ public class AudioManager : MonoBehaviour
             audioSource = gameObject.AddComponent<AudioSource>();
         }
 
-        //AudioManager.Instance.Volume = 0.1f; // Set volume to 50%
+        musicVolumeSlider.onValueChanged.AddListener(SetMusicVolume);
+        effectsVolumeSlider.onValueChanged.AddListener(SetEffectsVolume);
 
-        musicVolumeSlider.onValueChanged.AddListener(SetMusicListenerVolume);
-        effectsVolumeSlider.onValueChanged.AddListener(SetEffectsListenerVolume);
-
-        musicPlayer.volume = .5f;
-        effectsPlayer.volume = .5f;
+        musicPlayer.volume = 0.5f;
+        effectsPlayer.volume = 0.5f;
     }
 
     private void Update()
     {
-        musicPlayerNumber.text = (musicPlayer.volume * 100f).ToString();
-        effectsPlayerNumber.text = (effectsPlayer.volume * 100f).ToString();
-
+        musicPlayerNumber.text = (musicPlayer.volume * 100f).ToString("F0");
+        effectsPlayerNumber.text = (effectsPlayer.volume * 100f).ToString("F0");
 
         if (Input.GetKeyDown(KeyCode.Escape))
         {
@@ -114,50 +111,33 @@ public class AudioManager : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.P))
         {
-            if (!OptionsPanel.activeInHierarchy)
-            {
-                OptionsPanel.SetActive(true);
-            }
-            else
-            {
-                OptionsPanel.SetActive(false);
-            }
+            OptionsPanel.SetActive(!OptionsPanel.activeSelf);
         }
 
         if (Input.GetKeyDown(KeyCode.L))
         {
-            if (!HTPPanel.activeInHierarchy)
-            {
-                HTPPanel.SetActive(true);
-            }
-            else
-            {
-                HTPPanel.SetActive(false);
-            }
+            HTPPanel.SetActive(!HTPPanel.activeSelf);
         }
     }
 
-    private void SetMusicListenerVolume(float volume)
+    private void SetMusicVolume(float volume)
     {
-        musicPlayer.volume = volume / volumeVar;
+        musicPlayer.volume = volume;
     }
 
-    private void SetEffectsListenerVolume(float volume)
+    private void SetEffectsVolume(float volume)
     {
-        effectsPlayer.volume = volume / volumeVar;
+        effectsPlayer.volume = volume;
     }
 
     public void ApplyMusicSettings()
     {
-        // The volume updates itself through the slider's events, so no need to update 
-        // the volume in this function.
-        SetMusicListenerVolume(volumeVar);
+        musicPlayer.volume = volumeVar / 100f; // Adjust based on volumeVar if needed
     }
 
     public void ApplyEffectsSettings()
     {
-        // Or this one.
-        SetEffectsListenerVolume(volumeVar);
+        effectsPlayer.volume = volumeVar / 100f; // Adjust based on volumeVar if needed
     }
 
     public void PlaySound(SoundType soundType, float pitch)
@@ -169,19 +149,14 @@ public class AudioManager : MonoBehaviour
             audioSource.PlayOneShot(clip);
         }
     }
-    public void PlaySounds(SoundType soundType, float pitch)
-    {
-        int index = (int)soundType;
 
-        /*if (index >= 0 && index < soundClips.Count)
+    public void PlaySound(AudioClip clip, float pitch)
+    {
+        if (clip != null)
         {
             audioSource.pitch = pitch;
-            audioSource.PlayOneShot(soundClips[index]);
+            audioSource.PlayOneShot(clip);
         }
-        else
-        {
-            Debug.LogError("Invalid sound type!");
-        }*/
     }
 
     private AudioClip GetAudioClip(SoundType soundType)
@@ -194,15 +169,6 @@ public class AudioManager : MonoBehaviour
         Debug.LogError("Sound entry not found for " + soundType);
         return null;
     }
-    public float Volume
-    {
-        get { return volume; }
-        set
-        {
-            volume = Mathf.Clamp01(value); // Ensure volume is within range 0 to 1
-            audioSource.volume = volume; // Update the volume of the AudioSource
-        }
-    }
 
     public void SetVolume(float newVolume)
     {
@@ -210,32 +176,13 @@ public class AudioManager : MonoBehaviour
         audioSource.volume = volume; // Set the volume of the AudioSource
     }
 
-
-    public void Options()
+    public void ToggleOptionsPanel()
     {
-        if (OptionsPanel.activeSelf)
-        {
-            // If it is active, set it to false
-            OptionsPanel.SetActive(false);
-        }
-        else
-        {
-            // If it is not active, set it to true
-            OptionsPanel.SetActive(true);
-        }
+        OptionsPanel.SetActive(!OptionsPanel.activeSelf);
     }
 
-    public void HowToPlay()
+    public void ToggleHTPPanel()
     {
-        if (HTPPanel.activeSelf)
-        {
-            // If it is active, set it to false
-            HTPPanel.SetActive(false);
-        }
-        else
-        {
-            // If it is not active, set it to true
-            HTPPanel.SetActive(true);
-        }
+        HTPPanel.SetActive(!HTPPanel.activeSelf);
     }
 }

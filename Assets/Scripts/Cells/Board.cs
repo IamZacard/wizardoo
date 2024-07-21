@@ -65,15 +65,13 @@ public class Board : MonoBehaviour
                 Vector3Int cellPosition = new Vector3Int(x, y, 0);
                 Cell cell = grid[x, y];
 
-                // Check if the cell is a pillar position
+                // Check if the cell is a pillar position / Check if the cell is a shrine position
                 if (pillarPositions.Contains(cellPosition))
                 {
                     cell.type = Cell.Type.Pillar;
                     continue;
-                }
-
-                // Check if the cell is a shrine position
-                if (shrinePositions.Contains(cellPosition))
+                }                
+                else if (shrinePositions.Contains(cellPosition))
                 {
                     cell.type = Cell.Type.Shrine;
                     continue;
@@ -158,10 +156,24 @@ public class Board : MonoBehaviour
 
         if (tile == tileFloor)
         {
+            return Cell.Type.Floor;
+        }
+        if (tile == tileEmpty)
+        {
             return Cell.Type.Empty;
         }
-        return Cell.Type.Empty;
+        if (tile == tileMine)
+        {
+            return Cell.Type.Mine;
+        }
+        if (tile == tileExploded)
+        {
+            return Cell.Type.Mine; // Treat exploded mine as mine
+        }
+        // Add more checks if there are other tile types
+        return Cell.Type.Empty; // Default return type if no match found
     }
+
 
     private bool IsAdjacentToPillar(Vector3Int cellPosition)
     {

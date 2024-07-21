@@ -4,6 +4,7 @@ public class Pillar : MonoBehaviour
 {
     private SpriteRenderer spriteRenderer;
     private Color originalColor;
+    public float originalColorNumber = 150f;
 
     private void Awake()
     {
@@ -11,10 +12,6 @@ public class Pillar : MonoBehaviour
         if (spriteRenderer == null)
         {
             Debug.LogError("SpriteRenderer not found on Pillar object.");
-        }
-        else
-        {
-            originalColor = spriteRenderer.color;
         }
     }
 
@@ -30,7 +27,7 @@ public class Pillar : MonoBehaviour
     {
         if (other.CompareTag("Player"))
         {
-            SetSpriteAlpha(250);
+            SetSpriteAlpha(originalColorNumber);
         }
     }
 
@@ -39,7 +36,7 @@ public class Pillar : MonoBehaviour
         if (spriteRenderer != null)
         {
             Color newColor = spriteRenderer.color;
-            newColor.a = alpha / 250f; // Convert alpha to a value between 0 and 1
+            newColor.a = alpha / originalColorNumber; // Convert alpha to a value between 0 and 1
             spriteRenderer.color = newColor;
         }
     }

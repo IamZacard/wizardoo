@@ -1167,7 +1167,7 @@ MonoBehaviour:
   stepEffect: {fileID: 5402626375564937643, guid: 322962f5f36a0ed41885925ecde01aa7, type: 3}
   pickUpEffect: {fileID: 2523934970238192594, guid: 9132629e6699aa24ab4c72d72c376eee, type: 3}
   scaleNumber: 1.2
-  cellSelectionCursor: {fileID: 2800000, guid: f7069f53771c16c4ca6b3281c852ca35, type: 3}
+  cellSelectionCursor: {fileID: 2800000, guid: d949c2fb405778d48a1d0436f306bb76, type: 3}
 --- !u!114 &5800782518303077867
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1183,11 +1183,11 @@ MonoBehaviour:
   revealEffect: {fileID: 5402626375564937643, guid: 6bc2eac388d61d04e87ff9546b41a9e2, type: 3}
   defaultRevealRadius: 1.5
   increasedRevealRadius: 2.5
-  maxCastCount: 1
   currentCastCount: 0
   spellIcon: {fileID: 5229740902760514416}
   readyColor: {r: 1, g: 1, b: 1, a: 1}
   notReadyColor: {r: 0.19607843, g: 0.19607843, b: 0.3137255, a: 1}
+  charges: 0
   upgradePanel: {fileID: 5143677739508229127}
   upgradeButton1: {fileID: 5492263844940369347}
   upgradeButton2: {fileID: 5176886421284282912}
@@ -1481,7 +1481,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 3.566597, y: 0, z: 4.8016357, w: 0}
+  m_margin: {x: 4.883713, y: 0, z: 4.8016357, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0

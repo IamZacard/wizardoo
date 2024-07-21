@@ -264,7 +264,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 0, y: 0, z: 0, w: 0}
+  m_margin: {x: 9.037605, y: 0, z: 9.372246, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0
@@ -579,7 +579,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 0, y: 0, z: 0, w: 0}
+  m_margin: {x: 9.037567, y: 0, z: 9.5898285, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0
@@ -1251,8 +1251,8 @@ MonoBehaviour:
   flagEffect: {fileID: 5402626375564937643, guid: 4750760c2a1575f429b26ed45501c501, type: 3}
   stepEffect: {fileID: 5402626375564937643, guid: 322962f5f36a0ed41885925ecde01aa7, type: 3}
   pickUpEffect: {fileID: 2523934970238192594, guid: 9132629e6699aa24ab4c72d72c376eee, type: 3}
-  scaleNumber: 1.2
-  cellSelectionCursor: {fileID: 2800000, guid: f7069f53771c16c4ca6b3281c852ca35, type: 3}
+  scaleNumber: 1.1
+  cellSelectionCursor: {fileID: 2800000, guid: d949c2fb405778d48a1d0436f306bb76, type: 3}
 --- !u!114 &6395563795628387963
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1560,7 +1560,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 0, y: 0, z: 0, w: 0}
+  m_margin: {x: 5.5975723, y: 0, z: 4.939026, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0

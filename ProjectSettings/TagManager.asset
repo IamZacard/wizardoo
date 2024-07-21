@@ -22,6 +22,8 @@ TagManager:
   - MusicManager
   - Shrine
   - Gene
+  - BlueGene
+  - ZephPortal
   layers:
   - Default
   - TransparentFX
