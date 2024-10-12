@@ -4,6 +4,7 @@ using TMPro;
 using System.Collections;
 using UnityEngine.Events;
 using Unity.VisualScripting;
+using System.Collections.Generic;
 
 public class Genie : MonoBehaviour
 {
@@ -12,6 +13,8 @@ public class Genie : MonoBehaviour
     public GameObject dialogBox;
     public TextMeshProUGUI dialogText;
     public float dialogMoveDuration = 1.0f;
+    public float typingSpeed = 0.03f;
+    public List<AudioClip> soundClips; // Added sound clips list
 
     private bool playerInRange = false;
     private bool isDialogOpen = false;
@@ -109,7 +112,7 @@ public class Genie : MonoBehaviour
         }
     }
 
-    private IEnumerator OpenDialog()
+    /*private IEnumerator OpenDialog()
     {
         dialogText.text = "Hello, traveler! I won't do your three wishes, but you can choose one power-up.";
         dialogTriggered = true; // Set dialogTriggered to true once the dialogue is triggered
@@ -143,6 +146,72 @@ public class Genie : MonoBehaviour
 
         // Trigger the UpgradeReady event
         UpgradeManager.Instance.OnUpgradeReady.Invoke();
+    }*/
+    private IEnumerator OpenDialog()
+    {
+        dialogTriggered = true;
+        AudioManager.Instance.PlaySound(AudioManager.SoundType.DialogStart, .9f);
+
+        isDialogOpen = true;
+        dialogBox.SetActive(true);
+
+        float elapsedTime = 0f;
+        while (elapsedTime < dialogMoveDuration)
+        {
+            dialogBox.transform.localPosition = Vector3.Lerp(dialogBoxStartPosition, dialogBoxEndPosition, elapsedTime / dialogMoveDuration);
+            elapsedTime += Time.deltaTime;
+            yield return null;
+        }
+        dialogBox.transform.localPosition = dialogBoxEndPosition;
+
+        string[] dialogTexts = new string[]
+        {
+            "Hello, traveler! I won't do your three wishes, but you can choose one power-up."
+        };
+
+        foreach (string text in dialogTexts)
+        {
+            yield return StartCoroutine(TypeSentence(text));
+            yield return new WaitUntil(() => Input.GetMouseButtonDown(0));
+        }
+
+        yield return new WaitUntil(() => Input.GetMouseButtonDown(0));
+
+        isDialogOpen = false;
+        elapsedTime = 0f;
+        while (elapsedTime < dialogMoveDuration)
+        {
+            dialogBox.transform.localPosition = Vector3.Lerp(dialogBoxEndPosition, dialogBoxStartPosition, elapsedTime / dialogMoveDuration);
+            elapsedTime += Time.deltaTime;
+            yield return null;
+        }
+        dialogBox.transform.localPosition = dialogBoxStartPosition;
+        dialogText.text = "";
+        dialogBox.SetActive(false);
+
+        UpgradeManager.Instance.OnUpgradeReady.Invoke();
+    }
+
+    private IEnumerator TypeSentence(string sentence)
+    {
+        dialogText.text = "";
+        int characterCount = 0;
+
+        foreach (char letter in sentence.ToCharArray())
+        {
+            dialogText.text += letter;
+            characterCount++;
+
+            if (characterCount % 3 == 0 && soundClips != null && soundClips.Count > 0)
+            {
+                int randomIndex = Random.Range(0, soundClips.Count);
+                float randomPitch = Random.Range(0.7f, 1.3f);
+
+                AudioManager.Instance.PlaySound(soundClips[randomIndex], randomPitch);
+            }
+
+            yield return new WaitForSeconds(typingSpeed);
+        }
     }
 
     private void TalkState()

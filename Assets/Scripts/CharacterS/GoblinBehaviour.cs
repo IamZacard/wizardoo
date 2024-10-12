@@ -7,8 +7,9 @@ using UnityEngine.UI;
 public class GoblinBehaviour : MonoBehaviour
 {
     public int goblinIndex;
-    public float goblinsLuck = 0.5f;
-    private TextMeshProUGUI charactersText;
+    public float goblinsLuckBasic = 0.55f;
+    public float goblinsLuck;
+    public TextMeshProUGUI charactersText;
 
     // References for the upgrade panel and buttons
     public GameObject upgradePanel;
@@ -32,6 +33,8 @@ public class GoblinBehaviour : MonoBehaviour
         {
             Debug.LogWarning("No GameObject with tag 'GameRules' found!");
         }
+
+        goblinsLuck = goblinsLuckBasic;
     }
 
     private void Start()
@@ -67,6 +70,14 @@ public class GoblinBehaviour : MonoBehaviour
         if (upgradeButton1 != null)
         {
             originalScale = upgradeButton1.GetComponent<RectTransform>().localScale;
+        }
+    }
+
+    private void Update()
+    {
+        if(goblinsLuck <= .45f)
+        {
+            goblinsLuck = .45f;
         }
     }
 
@@ -122,8 +133,8 @@ public class GoblinBehaviour : MonoBehaviour
 
     private void IncreaseLuck()
     {
-        goblinsLuck = 0.55f;
-        Debug.Log("Gambler's Grace luck increased to 55%");
+        goblinsLuck = goblinsLuckBasic + 0.05f;
+        Debug.Log("Gambler's Grace luck increased");
         charactersText.text = (goblinsLuck * 100) + "% chance to flag trap";
     }
 

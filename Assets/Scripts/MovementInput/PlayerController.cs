@@ -2,16 +2,23 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 using System.Collections;
+using UnityEngine.Rendering.Universal;
 
 public class PlayerController : MonoBehaviour
 {
     private PlayerMovement controls;
     private SpriteRenderer sr;
     private Rigidbody2D rb;
-    private Game gameRules;
+    private Game gameRules;    
     private Shrine shrine;
+    private Light2D playerLight;
+    private LibrarianSoraya soraya;
+    private GirlBehaviour violet;
+
+    [Header("Bools")]
     public bool activePlayer;
 
+    [Header("Effects")]
     [SerializeField] private Transform effectPoint;
     [SerializeField] private GameObject flagEffect;
     [SerializeField] private GameObject stepEffect;
@@ -21,15 +28,18 @@ public class PlayerController : MonoBehaviour
     private Tilemap colissionTileMap;
 
     private TextMeshProUGUI deathCount;
+    private TextMeshProUGUI coinCount;
     private TextMeshProUGUI stepsCount;
 
     private bool deathCountIncreased = false;
+    //private bool coinCountIncreased = false;
     private int restartCount = 0;
 
     private Vector3Int currentCellPosition;
     private float timeSpentOnTile = 0f;
     private float requiredTimeOnTile = 3f;
 
+    [Header("UI")]
     private Vector3 originalScale;
     public float scaleNumber = 1.2f;
 
@@ -42,6 +52,7 @@ public class PlayerController : MonoBehaviour
     {
         controls = new PlayerMovement();
         rb = GetComponent<Rigidbody2D>();
+        playerLight = GetComponent<Light2D>();
 
         activePlayer = true;
 
@@ -50,6 +61,7 @@ public class PlayerController : MonoBehaviour
         GameObject wallObject = GameObject.FindGameObjectWithTag("Wall");
         GameObject gameRulesObject = GameObject.FindGameObjectWithTag("GameRules");
         GameObject shr1ne = GameObject.FindGameObjectWithTag("Shrine");
+        GameObject sora = GameObject.FindGameObjectWithTag("Sora");
 
         if (boardObject != null)
         {
@@ -106,6 +118,33 @@ public class PlayerController : MonoBehaviour
         {
             Debug.LogWarning("TextMeshProUGUI component with the specified tag not found!");
         }
+
+        if (sora != null)
+        {
+            soraya = GetComponent<LibrarianSoraya>();
+        }
+
+        coinCount = GameObject.FindGameObjectWithTag("CoinCount")?.GetComponent<TextMeshProUGUI>();
+        if (coinCount != null)
+        {
+            coinCount.text = "x " + CharacterManager.coinCount;
+        }
+        else
+        {
+            Debug.LogWarning("TextMeshProUGUI component with the specified tag not found!");
+        }
+
+        
+         violet = GetComponent<GirlBehaviour>();
+         if (violet != null)
+         {
+            Debug.Log("Violet object found: " + violet.gameObject.name);
+         }
+         else
+         {
+            Debug.LogWarning("Violet not found on player GameObject!");
+         }
+        
     }
 
     private void OnEnable()
@@ -127,15 +166,12 @@ public class PlayerController : MonoBehaviour
 
         originalScale = transform.localScale;
 
-        // Register to the upgrade ready event
-        if (UpgradeManager.Instance != null)
+        if (playerLight != null)
         {
-            UpgradeManager.Instance.ZephyrTrigger.AddListener(OnZephyrTrigger);
-            UpgradeManager.Instance.SorayaTrigger.AddListener(OnSorayaTrigger);
-        }
-        else
-        {
-            Debug.LogError("UpgradeManager.Instance is null!");
+            if (CharacterManager.increasedLight)
+            {
+                playerLight.pointLightOuterRadius += CharacterManager.increasedLightRadius;
+            }
         }
     }
 
@@ -147,6 +183,7 @@ public class PlayerController : MonoBehaviour
             activePlayer = true;
             deathCountIncreased = false;
             restartCount++;
+            CharacterManager.restartCount++;
 
             if (shrine?.shrineCellSelection == true)
             {
@@ -175,12 +212,13 @@ public class PlayerController : MonoBehaviour
             Debug.Log("Activating shrine cell selection");
             activePlayer = false;
             shrine.shrineCellSelection = true;
+            AudioManager.Instance.PlaySound(AudioManager.SoundType.Success, 1f);
         }
 
         if (shrine?.shrineCellSelection == true && shrine.HasCharges())
         {
             Vector2 cursorHotspot = new Vector2(cellSelectionCursor.width / 2, cellSelectionCursor.height / 2);
-            Cursor.SetCursor(cellSelectionCursor, cursorHotspot, CursorMode.Auto);
+            Cursor.SetCursor(cellSelectionCursor, cursorHotspot, CursorMode.Auto);            
             activePlayer = false;
 
             if (Input.GetMouseButtonDown(0))
@@ -263,7 +301,8 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    private void Move(Vector2 direction)
+    private void 
+        Move(Vector2 direction)
     {
         if (!activePlayer) return; // Prevent playerController if the player is not active
 
@@ -290,7 +329,14 @@ public class PlayerController : MonoBehaviour
             Vector3 stepPosition = transform.position + new Vector3(0f, -0.24f, 0f);
             Instantiate(stepEffect, stepPosition, Quaternion.identity);
             AudioManager.Instance.PlaySound(AudioManager.SoundType.FootStepSound, Random.Range(1.5f, 1.9f));
-            ScreenShake.Instance.TriggerShake(.01f, .05f);
+            ScreenShake.Instance.TriggerShake(.1f, .5f);
+            CharacterManager.stepsCount++;
+
+            if (CharacterManager.selectedCharacterIndex == 0) //Violet
+            {
+                violet.ResetTeleportStatus();
+            }            
+            
 
             // Perform the jump
             Vector3 targetPosition = transform.position + (Vector3)direction;
@@ -381,6 +427,8 @@ public class PlayerController : MonoBehaviour
         if (other.gameObject.CompareTag("MagicBlock"))
         {
             transform.position = SnapPosition(transform.position);
+            AudioManager.Instance.PlaySound(AudioManager.SoundType.ErrorSound, Random.Range(.8f, 1.2f));
+            ScreenShake.Instance.TriggerShake(1f, 5f);
         }
     }
 
@@ -393,9 +441,11 @@ public class PlayerController : MonoBehaviour
     {
         if (other.gameObject.CompareTag("JumpyChest"))
         {
+            IncreaseCoinCount();
             Destroy(other.gameObject);
             Instantiate(pickUpEffect, effectPoint.position, Quaternion.identity);
             AudioManager.Instance.PlaySound(AudioManager.SoundType.GalePickUp, Random.Range(.1f, 1.5f));
+            ScreenShake.Instance.TriggerShake(.5f, 2f);
         }
     }
 
@@ -422,6 +472,39 @@ public class PlayerController : MonoBehaviour
 
         Debug.Log("Death count increased. Total deaths: " + CharacterManager.deathCount);
     }
+
+    public void IncreaseCoinCount()
+    {
+        CharacterManager.coinCount++;
+        //coinCountIncreased = true;
+
+        if (coinCount != null)
+        {
+            coinCount.text = "x " + CharacterManager.coinCount;
+            StartCoroutine(ScaleText(coinCount, coinCount.transform.localScale * 2, 0.5f));
+        }
+
+        Debug.Log("Coin count increased. Total coins: " + CharacterManager.coinCount);
+    }
+
+    public void DecreaseCoinCount(int amount)
+    {
+        // Decrease the coin count by the specified amount
+        CharacterManager.coinCount -= amount;
+
+        // Ensure coin count doesn't go below zero
+        CharacterManager.coinCount = Mathf.Max(0, CharacterManager.coinCount);
+
+        // Update the coin count UI if necessary
+        if (coinCount != null)
+        {
+            coinCount.text = "x " + CharacterManager.coinCount;
+            StartCoroutine(ScaleText(coinCount, coinCount.transform.localScale * 2, 0.5f));
+        }
+
+        Debug.Log(amount + " coins deducted. Total coins: " + CharacterManager.coinCount);
+    }
+
 
     private IEnumerator ScaleText(TextMeshProUGUI text, Vector3 targetScale, float duration)
     {

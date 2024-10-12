@@ -195,11 +195,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e38d593eac44856469417c42de55fee6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gameRules: {fileID: 0}
+  activePlayer: 0
   effectPoint: {fileID: 786327018770038477}
   flagEffect: {fileID: 5402626375564937643, guid: 74b1998c133c13147884618432744996, type: 3}
-  groundTileMap: {fileID: 0}
-  colissionTileMap: {fileID: 0}
+  stepEffect: {fileID: 5402626375564937643, guid: 322962f5f36a0ed41885925ecde01aa7, type: 3}
+  pickUpEffect: {fileID: 2523934970238192594, guid: 9132629e6699aa24ab4c72d72c376eee, type: 3}
+  scaleNumber: 1.2
+  cellSelectionCursor: {fileID: 2800000, guid: d949c2fb405778d48a1d0436f306bb76, type: 3}
 --- !u!114 &8587648834990214247
 MonoBehaviour:
   m_ObjectHideFlags: 0

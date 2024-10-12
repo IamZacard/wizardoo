@@ -4,6 +4,7 @@ using TMPro;
 using System.Collections;
 using UnityEngine.Events;
 using Unity.VisualScripting;
+using System.Collections.Generic;
 
 public class BlueGenie : MonoBehaviour
 {
@@ -11,10 +12,12 @@ public class BlueGenie : MonoBehaviour
     public GameObject dialogBox;
     public TextMeshProUGUI dialogText;
     public float dialogMoveDuration = 1.0f;
+    public float typingSpeed = 0.03f;
+    public List<AudioClip> soundClips; // Added sound clips list
 
     private bool playerInRange = false;
     private bool isDialogOpen = false;
-    private bool dialogTriggered = false; // Indicates if the dialogue has been triggered once
+    //private bool dialogTriggered = false; // Indicates if the dialogue has been triggered once
     private Vector3 dialogBoxStartPosition = new Vector3(0, -925, 0);
     private Vector3 dialogBoxEndPosition = new Vector3(0, -480, 0);
     private PlayerController Player;
@@ -39,7 +42,7 @@ public class BlueGenie : MonoBehaviour
 
     private void Update()
     {
-        if (playerInRange && Input.GetKeyDown(KeyCode.E) && !isDialogOpen && !dialogTriggered)
+        if (playerInRange && Input.GetKeyDown(KeyCode.E) && !isDialogOpen /*&& !dialogTriggered*/)
         {
             StartCoroutine(OpenDialog());
 
@@ -81,7 +84,7 @@ public class BlueGenie : MonoBehaviour
             TalkState();
 
             // Show the activateKey only if the dialogue has not been triggered yet
-            if (activateKey != null && !dialogTriggered)
+            if (activateKey != null /*&& !dialogTriggered*/)
             {
                 activateKey.SetActive(true);
             }
@@ -103,9 +106,9 @@ public class BlueGenie : MonoBehaviour
         }
     }
 
-    private IEnumerator OpenDialog()
+    /*private IEnumerator OpenDialog()
     {
-        dialogText.text = "Hello, traveler! I won't do your three wishes, but you can choose one power-up.";
+        dialogText.text = "Hi, I am portal keeper here! I can provide you a shortcut for a coin";
         dialogTriggered = true; // Set dialogTriggered to true once the dialogue is triggered
 
         AudioManager.Instance.PlaySound(AudioManager.SoundType.Success, .9f);
@@ -137,6 +140,73 @@ public class BlueGenie : MonoBehaviour
 
         // Trigger the UpgradeReady event
         UpgradeManager.Instance.ZephyrTrigger.Invoke();
+    }*/
+
+    private IEnumerator OpenDialog()
+    {
+        //dialogTriggered = true;
+        AudioManager.Instance.PlaySound(AudioManager.SoundType.Success, .9f);
+
+        isDialogOpen = true;
+        dialogBox.SetActive(true);
+
+        float elapsedTime = 0f;
+        while (elapsedTime < dialogMoveDuration)
+        {
+            dialogBox.transform.localPosition = Vector3.Lerp(dialogBoxStartPosition, dialogBoxEndPosition, elapsedTime / dialogMoveDuration);
+            elapsedTime += Time.deltaTime;
+            yield return null;
+        }
+        dialogBox.transform.localPosition = dialogBoxEndPosition;
+
+        string[] dialogTexts = new string[]
+        {
+            "Hi, I am portal keeper here! I can provide you a shortcut for a coin"
+        };
+
+        foreach (string text in dialogTexts)
+        {
+            yield return StartCoroutine(TypeSentence(text));
+            yield return new WaitUntil(() => Input.GetMouseButtonDown(0));
+        }
+
+        yield return new WaitUntil(() => Input.GetMouseButtonDown(0));
+
+        isDialogOpen = false;
+        elapsedTime = 0f;
+        while (elapsedTime < dialogMoveDuration)
+        {
+            dialogBox.transform.localPosition = Vector3.Lerp(dialogBoxEndPosition, dialogBoxStartPosition, elapsedTime / dialogMoveDuration);
+            elapsedTime += Time.deltaTime;
+            yield return null;
+        }
+        dialogBox.transform.localPosition = dialogBoxStartPosition;
+        dialogText.text = "";
+        dialogBox.SetActive(false);
+
+        UpgradeManager.Instance.ZephyrTrigger.Invoke();
+    }
+
+    private IEnumerator TypeSentence(string sentence)
+    {
+        dialogText.text = "";
+        int characterCount = 0;
+
+        foreach (char letter in sentence.ToCharArray())
+        {
+            dialogText.text += letter;
+            characterCount++;
+
+            if (characterCount % 3 == 0 && soundClips != null && soundClips.Count > 0)
+            {
+                int randomIndex = Random.Range(0, soundClips.Count);
+                float randomPitch = Random.Range(0.7f, 1.3f);
+
+                AudioManager.Instance.PlaySound(soundClips[randomIndex], randomPitch);
+            }
+
+            yield return new WaitForSeconds(typingSpeed);
+        }
     }
 
     private void TalkState()

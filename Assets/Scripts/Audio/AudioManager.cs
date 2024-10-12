@@ -22,9 +22,15 @@ public class AudioManager : MonoBehaviour
         LevelComplete,
         LoseStepOnTrap,
         BoardRevealSound,
+        PlateRevealSound,
         Success,
         PortalSound,
         TalkSound,
+        CatMeowSound,
+        MagicBlockReleaseSound,
+        DialogStart,
+        LevelStartSound,
+        EnterWordSound,
         // Add more sound types as needed
     }
 
@@ -122,13 +128,25 @@ public class AudioManager : MonoBehaviour
 
     private void SetMusicVolume(float volume)
     {
+        musicPlayer.volume = volume / 100f; // Convert 0-100 range to 0-1 for AudioSource
+        musicPlayerNumber.text = volume.ToString("F0") + "%"; // Show the actual 0-100 value for the UI
+    }
+
+    private void SetEffectsVolume(float volume)
+    {
+        effectsPlayer.volume = volume / 100f; // Convert 0-100 range to 0-1 for AudioSource
+        effectsPlayerNumber.text = volume.ToString("F0") + "%"; // Show the actual 0-100 value for the UI
+    }
+
+    /*private void SetMusicVolume(float volume)
+    {
         musicPlayer.volume = volume;
     }
 
     private void SetEffectsVolume(float volume)
     {
         effectsPlayer.volume = volume;
-    }
+    }*/
 
     public void ApplyMusicSettings()
     {

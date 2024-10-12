@@ -24,6 +24,10 @@ TagManager:
   - Gene
   - BlueGene
   - ZephPortal
+  - CoinCount
+  - Cat
+  - Sora
+  - Illusion
   layers:
   - Default
   - TransparentFX

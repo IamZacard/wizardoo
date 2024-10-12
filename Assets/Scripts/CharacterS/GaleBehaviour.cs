@@ -13,8 +13,10 @@ public class GaleBehaviour : MonoBehaviour
     [Header("Drop Items")]
     public int numOfItems;
     public int requiredNumOfItems = 3;
-    public float dropSpawnChance = .7f;
+    public float dropSpawnChance;
     public GameObject[] dropPrefab;
+    public GameObject dropSpawnEffect;
+    public GameObject dropPickUpEffect;
 
     [SerializeField] private Transform effectPoint;
     public GameObject blastEffect;
@@ -84,7 +86,7 @@ public class GaleBehaviour : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.N) || Input.GetKeyDown(KeyCode.R) || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space))
+        if ((Input.GetKeyDown(KeyCode.N) || Input.GetKeyDown(KeyCode.R) || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space)) && !gameRules.levelComplete)
         {
             ResetPrefabNum();
         }
@@ -93,7 +95,7 @@ public class GaleBehaviour : MonoBehaviour
         {
             FlagRandomTrap();
             Instantiate(blastEffect, effectPoint.transform.position, Quaternion.identity);
-            ScreenShake.Instance.TriggerShake(1f, 1f);
+            ScreenShake.Instance.TriggerShake(1f, 10f);
             AudioManager.Instance.PlaySound(AudioManager.SoundType.GaleBlast, 1f);
             Debug.Log("blastEffect!");
             gameRules.CheckWinConditionFlags();
@@ -169,6 +171,9 @@ public class GaleBehaviour : MonoBehaviour
             Vector3 cellWorldPosition = board.tilemap.GetCellCenterWorld(randomSpawnPosition);
             Instantiate(dropPrefab[UnityEngine.Random.Range(0, dropPrefab.Length)], cellWorldPosition, Quaternion.identity);
             usedSpawnPositions.Add(randomSpawnPosition);
+
+            Vector3 effectPosition = cellWorldPosition + new Vector3(0, .01f, 1f); // Offset slightly in Z
+            Instantiate(dropSpawnEffect, effectPosition, Quaternion.identity);
         }
         else
         {
@@ -209,6 +214,7 @@ public class GaleBehaviour : MonoBehaviour
             numOfItems += 1;
             Destroy(other.gameObject);
             UpdateCharacterText();
+            Instantiate(dropPickUpEffect, other.transform.position, Quaternion.identity);
             AudioManager.Instance.PlaySound(AudioManager.SoundType.GalePickUp, UnityEngine.Random.Range(.9f, 1.1f));
         }
     }

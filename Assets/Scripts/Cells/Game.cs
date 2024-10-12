@@ -1,6 +1,7 @@
 using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 using TMPro;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
@@ -12,14 +13,20 @@ public class Game : MonoBehaviour
     [Header("Height")]
     public int height = 16;
 
-    [Header("Trap Count")]
-    public int trapCount = 4;
+    [Header("Trap Difficulty")]
+    public float difficulty = .2f;
+    private int trapCount;
 
     private GameObject player;
 
     [Header("Player's Stats")]
     public Vector2 startPos;
     public float flagCount;
+
+    public int successfulReveals = 0; // To track number of successful reveals
+    public int requiredReveals = 5; // N - Number of reveals before revealing an additionl cell
+
+    [Header("Adjustment for Violet")]
     public int trapCountIncrease = 1;
 
     [Header("Portal Block")]
@@ -46,15 +53,25 @@ public class Game : MonoBehaviour
     private Board board;
     public CellGrid grid;
 
+    [Header("Info")]
     public int currentLevel;
 
+    [Header("Effects")]
+    [SerializeField] private GameObject revealEffect;
+    [SerializeField] private GameObject TrapExplotionEffect;
+    [SerializeField] private GameObject startEffect;
+    [SerializeField] private GameObject blockDestroyEffect;
+
+    private int characterIndex = CharacterManager.selectedCharacterIndex;
     private MystBehaviour myst;
     private GaleBehaviour gale;
     private GoblinBehaviour goblin;
+    private GirlBehaviour violet;
 
     private void OnValidate()
     {
-        trapCount = Mathf.Clamp(trapCount, 0, width * height);
+        // Calculate the trapCount based on board size and difficulty
+        trapCount = Mathf.Clamp(Mathf.RoundToInt((width * height) * difficulty), 0, width * height);
     }
 
     private void Awake()
@@ -62,7 +79,11 @@ public class Game : MonoBehaviour
         Application.targetFrameRate = 60;
         board = GetComponentInChildren<Board>();
 
-        // Update trapCount and flagCount based on selectedCharacterIndex
+        // Calculate trapCount and flagCount
+        trapCount = Mathf.RoundToInt((width * height) * difficulty);
+        flagCount = trapCount;
+
+        // If the selected character is index 0 (Violet), apply the trapCountIncrease
         if (CharacterManager.selectedCharacterIndex == 0)
         {
             trapCount += trapCountIncrease;
@@ -72,10 +93,9 @@ public class Game : MonoBehaviour
         initialSkullPosition = skullImage.localPosition;
         initialSkullScale = skullImage.localScale;
     }
-
     private void Start()
     {
-        UpdateMineFlagText();
+        UpdateTrapFlagText();
 
         player = GameObject.FindGameObjectWithTag("Player");
         if (player != null)
@@ -87,14 +107,26 @@ public class Game : MonoBehaviour
         else
         {
             Debug.LogWarning("Player GameObject not found!");
-        }        
+        }
+
+        LevelTimer.Instance.StartLevelTimer();
     }
 
     private void InitializeCharacter()
     {
-        int characterIndex = CharacterManager.selectedCharacterIndex;
-
-        if (characterIndex == 1) //Mystic
+        if (characterIndex == 0) //Violet
+        {
+            violet = player.GetComponent<GirlBehaviour>();
+            if (violet != null)
+            {
+                Debug.Log("Violet object found: " + violet.gameObject.name);
+            }
+            else
+            {
+                Debug.LogWarning("Violet not found on player GameObject!");
+            }
+        }
+        else if (characterIndex == 1) //Mystic
         {
             myst = player.GetComponent<MystBehaviour>();
             if (myst != null)
@@ -140,17 +172,6 @@ public class Game : MonoBehaviour
     {
         StopAllCoroutines();
 
-        //Camera.main.transform.position = new Vector3(width / 2f, height / 2f, -10f);
-        // Set the camera position based on the level
-        if (currentLevel == 7)
-        {
-            Camera.main.transform.position = new Vector3(7.5f, 3.5f, -10f);
-        }
-        else
-        {
-            Camera.main.transform.position = new Vector3(width / 2f, height / 2f, -10f);
-        }
-
         gameover = false;
         levelComplete = false;
         generated = false;
@@ -164,6 +185,8 @@ public class Game : MonoBehaviour
         }
 
         player.transform.position = startPos;
+        Instantiate(startEffect, startPos, Quaternion.identity);
+        AudioManager.Instance.PlaySound(AudioManager.SoundType.LevelStartSound, Random.Range(1f, 1.1f));
 
         //skullImage.localPosition = initialSkullPosition;
         //skullImage.localScale = initialSkullScale;
@@ -171,7 +194,7 @@ public class Game : MonoBehaviour
 
         flagCount = trapCount;
 
-        UpdateMineFlagText();
+        UpdateTrapFlagText();
         canFlag = false;
         lostPanel.SetActive(false);
         solvedPanel.SetActive(false);
@@ -185,11 +208,17 @@ public class Game : MonoBehaviour
         {
             gale.ResetPrefabNum();
         }
+        
+        if (goblin != null && characterIndex == 4) //Goblin
+        {
+            goblin.goblinsLuck = goblin.goblinsLuckBasic;
+            goblin.charactersText.text = (goblin.goblinsLuck * 100) + "% chance to flag trap";
+        }
     }
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.N) || Input.GetKeyDown(KeyCode.R) || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space))
+        if ((Input.GetKeyDown(KeyCode.N) || Input.GetKeyDown(KeyCode.R) || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space)) && !levelComplete)
         {
             NewGame();
             return;
@@ -201,7 +230,7 @@ public class Game : MonoBehaviour
             if (Input.GetMouseButtonDown(1) && canFlag && !gameover && !levelComplete)
             {
                 Flag();
-            }
+            }   
         }
     }
 
@@ -221,6 +250,7 @@ public class Game : MonoBehaviour
         }
     }
 
+    // Inside your Reveal function:
     public void Reveal(Cell cell)
     {
         if (cell.revealed || cell.flagged) return;
@@ -232,21 +262,120 @@ public class Game : MonoBehaviour
                 break;
             case Cell.Type.Empty:
                 StartCoroutine(Flood(cell));
-                CheckWinCondition();
                 break;
             default:
                 cell.revealed = true;
-                CheckWinCondition();
                 break;
         }
 
+        CheckWinCondition();
+
+        // Increment successfulReveals after a successful reveal
+        if (CharacterManager.RevealCellForStep && (cell.type != Cell.Type.Mine && !cell.flagged))
+        {
+            successfulReveals++;
+
+            // Check if enough reveals have been made
+            if (successfulReveals >= requiredReveals)
+            {
+                // Reveal random cells
+                TryRevealAdjacentCell();
+                successfulReveals = 0;  // Reset after revealing random cells
+            }
+        }
+
+        // Gale logic (index 3)
         if (CharacterManager.selectedCharacterIndex == 3 && Random.value <= gale?.dropSpawnChance) //Gale
         {
             gale?.SpawnItemPrefab();
-            ScreenShake.Instance.TriggerShake(.05f, .05f);
+            ScreenShake.Instance.TriggerShake(.1f, 1f);
         }
 
+        Instantiate(revealEffect, (cell.position + new Vector3(.5f, .5f)), Quaternion.identity);
+        AudioManager.Instance.PlaySound(AudioManager.SoundType.PlateRevealSound, Random.Range(.8f, 1.2f));
+
         board.Draw(grid);
+    }
+
+    private void TryRevealAdjacentCell()
+    {
+        // Get the position of the character
+        Vector3 characterPosition = player.transform.position;
+
+        // List to store valid cell positions
+        List<Vector3Int> validCellPositions = new List<Vector3Int>();
+
+        // Loop through nearby cells within the reveal radius
+        for (int x = -1; x <= 1; x++)
+        {
+            for (int y = -1; y <= 1; y++)
+            {
+                // Calculate the position of the cell relative to the character
+                Vector3Int cellPosition = new Vector3Int(Mathf.FloorToInt(characterPosition.x) + x, Mathf.FloorToInt(characterPosition.y) + y, 0);
+
+                // Check if the cell is within the grid boundaries and not the current character's cell
+                if (IsWithinBoardBounds(cellPosition) && cellPosition != new Vector3Int(Mathf.FloorToInt(characterPosition.x), Mathf.FloorToInt(characterPosition.y), 0))
+                {
+                    // Try to get the cell at the calculated position
+                    if (grid.TryGetCell(cellPosition.x, cellPosition.y, out Cell cell))
+                    {
+                        if (!cell.revealed)
+                        {
+                            // Add the valid cell position to the list
+                            validCellPositions.Add(cellPosition);
+                        }
+                    }
+                }
+            }
+        }
+
+        if (validCellPositions.Count > 0)
+        {
+            // Select a random cell from the list of valid cell positions
+            Vector3Int randomCellPosition = validCellPositions[Random.Range(0, validCellPositions.Count)];
+
+            // Get the cell at the random position
+            if (grid.TryGetCell(randomCellPosition.x, randomCellPosition.y, out Cell randomCell))
+            {
+                if (randomCell.type == Cell.Type.Mine && !randomCell.revealed && !randomCell.flagged)
+                {
+                    // Automatically flag the mine if it's not revealed and not already flagged
+                    randomCell.flagged = true;
+                }
+                else if (!randomCell.revealed)
+                {
+                    // Reveal the cell if it's not a mine and not already revealed
+                    Reveal(randomCell);
+                }
+
+                // Update the board
+                board.Draw(grid);
+            }
+        }
+    }
+
+    public bool IsCellRevealed(Vector3Int cellPosition)
+    {
+        // Assuming cellPosition is already in grid coordinates, if not, convert it
+        Vector3Int gridCellPosition = cellPosition;
+
+        // Check if the cell exists in the game grid and return its revealed state
+        if (grid.TryGetCell(gridCellPosition.x, gridCellPosition.y, out Cell cell))
+        {
+            return cell.revealed;
+        }
+
+        // If the cell doesn't exist, return false
+        return false;
+    }
+
+    private bool IsWithinBoardBounds(Vector3Int cellPosition)
+    {
+        // Get the bounds of the tilemap
+        BoundsInt bounds = board.tilemap.cellBounds;
+
+        // Check if the cell position is within the bounds of the tilemap
+        return bounds.Contains(cellPosition);
     }
 
     private IEnumerator Flood(Cell cell)
@@ -260,6 +389,7 @@ public class Game : MonoBehaviour
         if (cell.type == Cell.Type.Empty)
         {
             FloodAdjacentCells(cell.position);
+            Instantiate(revealEffect, (cell.position + new Vector3(.5f, .5f)), Quaternion.identity);
         }
     }
 
@@ -290,7 +420,7 @@ public class Game : MonoBehaviour
             AudioManager.Instance.PlaySound(AudioManager.SoundType.FlagSpell, Random.Range(0.1f, 1.5f));
         }
 
-        UpdateMineFlagText();
+        UpdateTrapFlagText();
         
         board.Draw(grid);
 
@@ -299,10 +429,17 @@ public class Game : MonoBehaviour
 
     private void Explode(Cell cell)
     {
-        if (CharacterManager.selectedCharacterIndex == 1 && myst.invincible) //Mystic
+        if (CharacterManager.selectedCharacterIndex == 0 && violet.safeTp && violet.hasTeleported) //Violet
         {
             FlagCell(cell);
-            ScreenShake.Instance.TriggerShake(.1f, .1f);
+            violet.safeTp = false;
+            ScreenShake.Instance.TriggerShake(.1f, 3f);
+            //AudioManager.Instance.PlaySound(AudioManager.SoundType.ShuffExplotion, 1f);
+        }
+        else if (CharacterManager.selectedCharacterIndex == 1 && myst.invincible) //Mystic
+        {
+            FlagCell(cell);
+            ScreenShake.Instance.TriggerShake(.1f, 3f);
         }
         else if (CharacterManager.selectedCharacterIndex == 4) //Goblin
         {
@@ -310,14 +447,17 @@ public class Game : MonoBehaviour
             if (randomValue > goblin.goblinsLuck)
             {
                 TriggerGameOver(cell);
-                ScreenShake.Instance.TriggerShake(.3f, .2f);
-                AudioManager.Instance.PlaySound(AudioManager.SoundType.ShuffExplotion, 1f);
+                ScreenShake.Instance.TriggerShake(1f, 5f);
+                AudioManager.Instance.PlaySound(AudioManager.SoundType.ShuffExplotion, 1f);                
             }
             else
             {
                 FlagCell(cell);
-                ScreenShake.Instance.TriggerShake(.1f, .1f);
+                ScreenShake.Instance.TriggerShake(.5f, 5f);
                 AudioManager.Instance.PlaySound(AudioManager.SoundType.ShuffProc, 1f);
+
+                goblin.goblinsLuck -= 0.01f;
+                goblin.charactersText.text = (goblin.goblinsLuck * 100) + "% chance to flag trap";
             }
         }
         else
@@ -325,7 +465,6 @@ public class Game : MonoBehaviour
             TriggerGameOver(cell);
         }
     }
-
 
     private void FlagCell(Cell cell)
     {
@@ -338,20 +477,25 @@ public class Game : MonoBehaviour
 
     private void TriggerGameOver(Cell cell)
     {
-        Debug.Log("Game Over!");
-        lostPanel.SetActive(true);
-        ScreenShake.Instance.TriggerShake(.2f, .3f);
         gameover = true;
+        Debug.Log("Game Over!");
 
-        //skullImage.localPosition = new Vector3(0, 0, 0); // Center of the screen
-        //skullImage.localScale = initialSkullScale * 3; // Scale x3
-
-        StartCoroutine(AnimateSkull(new Vector3(0, 0, 0), initialSkullScale * 3, 0.5f));
-
+        ScreenShake.Instance.TriggerShake(1f, 6f);
         AudioManager.Instance.PlaySound(AudioManager.SoundType.LoseStepOnTrap, Random.Range(0.9f, 1.1f));
+
+        if (TrapExplotionEffect != null)
+        {
+            // Convert Vector3Int to Vector3 and add the Vector2 offset
+            Vector3 explosionPosition = cell.position + new Vector3(0.5f, 0.5f, 0);
+            Instantiate(TrapExplotionEffect, explosionPosition, Quaternion.identity);
+        }
+
         cell.exploded = true;
         cell.revealed = true;
+
         RevealAllMines();
+
+        StartCoroutine(GameOverPanel());
     }
 
     private void RevealAllMines()
@@ -371,26 +515,36 @@ public class Game : MonoBehaviour
 
     public void CheckWinCondition()
     {
+        bool allRevealed = true;
+
         for (int x = 0; x < width; x++)
         {
             for (int y = 0; y < height; y++)
             {
                 Cell cell = grid[x, y];
 
-                // All non-mine cells must be revealed to have won
-                if (cell.type != Cell.Type.Mine && !cell.revealed)
+                // Ignore flagged cells and only check non-trap cells
+                if (cell.type != Cell.Type.Mine && !cell.revealed && !cell.flagged)
                 {
                     Debug.Log($"Cell at {x},{y} is not revealed yet.");
-                    return; // no win, continue checking other cells
+                    allRevealed = false;
+                    break; // stop checking further
                 }
+            }
+
+            // If any non-trap cell isn't revealed, exit loop early
+            if (!allRevealed)
+            {
+                break;
             }
         }
 
-        if (!levelComplete)
+        if (allRevealed && !levelComplete)
         {
             WinGame();
         }
     }
+
     public void CheckWinConditionFlags()
     {
         bool allMinesFlagged = true;
@@ -426,11 +580,17 @@ public class Game : MonoBehaviour
     private void WinGame()
     {
         Debug.Log("Winner!");
+        
+        ScreenShake.Instance.TriggerShake(2f, 5f);
+        AudioManager.Instance.PlaySound(AudioManager.SoundType.MagicBlockReleaseSound, 1f);
+        Instantiate(blockDestroyEffect, magicBlock.transform.position, Quaternion.identity);
         magicBlock.SetActive(false);
-        ScreenShake.Instance.TriggerShake(.1f, .1f);
+
         solvedPanel.SetActive(true);
         levelComplete = true;
         AudioManager.Instance.PlaySound(AudioManager.SoundType.LevelComplete, 1f);
+
+        LevelTimer.Instance.StopLevelTimer();
 
         for (int x = 0; x < width; x++)
         {
@@ -459,9 +619,19 @@ public class Game : MonoBehaviour
         return grid.TryGetCell(cellPosition.x, cellPosition.y, out cell);
     }
 
-    private void UpdateMineFlagText()
+    private void UpdateTrapFlagText()
     {
-        trapText.text = "Traps: " + trapCount;
+        if (CharacterManager.showNumberOfTraps)
+        {
+            trapText.text = "Traps: " + trapCount;
+        }
+        else
+        {
+            trapText.text = "";
+            //trapText.text = "Traps: ?";
+        }
+
+        //trapText.text = "Traps: " + trapCount;
         flagText.text = "Flags: " + flagCount;
     }
 
@@ -483,4 +653,10 @@ public class Game : MonoBehaviour
         skullImage.localScale = targetScale;
     }
 
+    private IEnumerator GameOverPanel()
+    {
+        yield return new WaitForSeconds(1f); // Wait for N seconds
+        lostPanel.SetActive(true);
+        StartCoroutine(AnimateSkull(new Vector3(0, 0, 0), initialSkullScale * 3, 0.5f));
+    }
 }

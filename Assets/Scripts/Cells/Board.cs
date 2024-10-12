@@ -8,6 +8,7 @@ public class Board : MonoBehaviour
     public Tilemap tilemap { get; private set; }
 
     public Tile[] tileUnknownVariants;
+    public AnimatedTile tileUnknown;
     public Tile tileFloor;
     public Tile tileEmpty;
     public Tile tileMine;
@@ -99,12 +100,25 @@ public class Board : MonoBehaviour
         }
     }
 
-    private Tile GetUnknownTile()
+    /*private Tile GetUnknownTile()
     {
         if (tileUnknownVariants != null && tileUnknownVariants.Length > 0)
         {
             int randomIndex = Random.Range(0, tileUnknownVariants.Length);
             return tileUnknownVariants[randomIndex];
+        }
+        else
+        {
+            Debug.LogWarning("No tileUnknown variants assigned!");
+            return null;
+        }
+    }*/
+
+    private TileBase GetUnknownTile()
+    {
+        if (tileUnknown != null )
+        {
+            return tileUnknown;
         }
         else
         {

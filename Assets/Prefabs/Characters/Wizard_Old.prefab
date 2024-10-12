@@ -1165,7 +1165,7 @@ MonoBehaviour:
   effectPoint: {fileID: 786327018770038477}
   flagEffect: {fileID: 5402626375564937643, guid: 69c6f4676550cd142a53c3b382a28646, type: 3}
   stepEffect: {fileID: 5402626375564937643, guid: 322962f5f36a0ed41885925ecde01aa7, type: 3}
-  pickUpEffect: {fileID: 2523934970238192594, guid: 9132629e6699aa24ab4c72d72c376eee, type: 3}
+  pickUpEffect: {fileID: 7506567325621634543, guid: 6f3caef8f7976a443b72e0b47cfa9a88, type: 3}
   scaleNumber: 1.2
   cellSelectionCursor: {fileID: 2800000, guid: d949c2fb405778d48a1d0436f306bb76, type: 3}
 --- !u!114 &5800782518303077867

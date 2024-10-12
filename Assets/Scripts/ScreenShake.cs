@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using Cinemachine;
 
 public class ScreenShake : MonoBehaviour
 {
@@ -10,8 +11,10 @@ public class ScreenShake : MonoBehaviour
     public float defaultShakeDuration = 0.5f;
     public float defaultShakeMagnitude = 0.5f;
 
-    private Transform cameraTransform;
-    private Vector3 initialPosition;
+    private CinemachineVirtualCamera cinemachineVirtualCamera;
+    private CinemachineBasicMultiChannelPerlin cinemachinePerlin;
+    private float initialAmplitude;
+    private float initialFrequency;
 
     private void Awake()
     {
@@ -29,61 +32,68 @@ public class ScreenShake : MonoBehaviour
 
     private void Start()
     {
-        SetCameraReference();
+        SetVirtualCameraReference();
     }
 
-    private void SetCameraReference()
+    private void SetVirtualCameraReference()
     {
-        if (Camera.main != null)
+        // Automatically find the CinemachineVirtualCamera in the scene
+        cinemachineVirtualCamera = FindObjectOfType<CinemachineVirtualCamera>();
+
+        if (cinemachineVirtualCamera != null)
         {
-            cameraTransform = Camera.main.transform;
-            initialPosition = cameraTransform.position;
+            cinemachinePerlin = cinemachineVirtualCamera.GetCinemachineComponent<CinemachineBasicMultiChannelPerlin>();
+
+            if (cinemachinePerlin != null)
+            {
+                initialAmplitude = cinemachinePerlin.m_AmplitudeGain;
+                initialFrequency = cinemachinePerlin.m_FrequencyGain;
+                Debug.Log("CinemachineBasicMultiChannelPerlin found and set up correctly.");
+            }
+            else
+            {
+                Debug.LogWarning("CinemachineBasicMultiChannelPerlin is not set up correctly on the CinemachineVirtualCamera.");
+            }
         }
         else
         {
-            Debug.LogWarning("Main Camera not found. Make sure a camera has the tag 'MainCamera'.");
+            Debug.LogWarning("No CinemachineVirtualCamera found in the scene.");
         }
     }
 
-    public void TriggerShake(float duration, float initialMagnitude)
+    public void TriggerShake(float duration, float magnitude)
     {
-        if (cameraTransform == null)
+        if (cinemachineVirtualCamera == null || cinemachinePerlin == null)
         {
-            SetCameraReference();
+            SetVirtualCameraReference();
         }
 
-        if (cameraTransform != null)
+        if (cinemachinePerlin != null)
         {
-            StartCoroutine(Shake(duration, initialMagnitude));
+            StartCoroutine(Shake(duration, magnitude));
         }
         else
         {
-            Debug.LogWarning("Camera transform is still null. Screen shake will not occur.");
+            Debug.LogWarning("Cinemachine Perlin Noise is not set up correctly.");
         }
     }
 
-    private IEnumerator Shake(float duration, float initialMagnitude)
+    private IEnumerator Shake(float duration, float magnitude)
     {
         float elapsed = 0f;
 
+        // Set initial shake values
+        cinemachinePerlin.m_AmplitudeGain = magnitude;
+        cinemachinePerlin.m_FrequencyGain = magnitude;
+
         while (elapsed < duration)
         {
-            if (cameraTransform == null)
-            {
-                yield break;
-            }
-
-            float magnitude = Mathf.Lerp(initialMagnitude, 0f, elapsed / duration);
-            Vector3 randomPoint = initialPosition + (Vector3)Random.insideUnitCircle * magnitude;
-            cameraTransform.position = new Vector3(randomPoint.x, randomPoint.y, initialPosition.z);
-
             elapsed += Time.deltaTime;
             yield return null;
         }
 
-        if (cameraTransform != null)
-        {
-            cameraTransform.position = initialPosition;
-        }
+        // Reset to initial values after shaking
+        cinemachinePerlin.m_AmplitudeGain = initialAmplitude;
+        cinemachinePerlin.m_FrequencyGain = initialFrequency;
     }
 }

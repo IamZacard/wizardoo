@@ -102,12 +102,12 @@ public class MystBehaviour : MonoBehaviour
         }
 
         // Ensure the shrine is not active before activating the ability
-        if (Input.GetMouseButtonDown(0) && playerController.activePlayer && !EventSystem.current.IsPointerOverGameObject() && !invincible && charges > 0 && !gameRules.gameover)
+        if (Input.GetMouseButtonDown(0) && playerController.activePlayer && !EventSystem.current.IsPointerOverGameObject() && !invincible && charges > 0 && !gameRules.gameover && !gameRules.levelComplete)
         {
             ActivateInvincibility();
         }
 
-        if (Input.GetKeyDown(KeyCode.N) || Input.GetKeyDown(KeyCode.R) || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space))
+        if ((Input.GetKeyDown(KeyCode.N) || Input.GetKeyDown(KeyCode.R) || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space)) && !gameRules.levelComplete)
         {
             ResetAbility();
         }

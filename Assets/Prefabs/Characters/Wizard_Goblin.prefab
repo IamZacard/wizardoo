@@ -1250,7 +1250,7 @@ MonoBehaviour:
   effectPoint: {fileID: 786327018770038477}
   flagEffect: {fileID: 5402626375564937643, guid: 4750760c2a1575f429b26ed45501c501, type: 3}
   stepEffect: {fileID: 5402626375564937643, guid: 322962f5f36a0ed41885925ecde01aa7, type: 3}
-  pickUpEffect: {fileID: 2523934970238192594, guid: 9132629e6699aa24ab4c72d72c376eee, type: 3}
+  pickUpEffect: {fileID: 7506567325621634543, guid: 6f3caef8f7976a443b72e0b47cfa9a88, type: 3}
   scaleNumber: 1.1
   cellSelectionCursor: {fileID: 2800000, guid: d949c2fb405778d48a1d0436f306bb76, type: 3}
 --- !u!114 &6395563795628387963
@@ -1266,7 +1266,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   goblinIndex: 0
+  goblinsLuckBasic: 0.55
   goblinsLuck: 0.5
+  charactersText: {fileID: 4980412063476776948}
   upgradePanel: {fileID: 6148800410778319124}
   upgradeButton1: {fileID: 6777528339367923920}
   upgradeButton2: {fileID: 6188244981316992819}

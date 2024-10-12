@@ -9,7 +9,7 @@ public class CameraZoom : MonoBehaviour
     [SerializeField] private float zoomSpeed = 1.0f;
     [SerializeField] private float minZoom = 5.0f;
     [SerializeField] private float maxZoom = 10.0f;
-    [SerializeField] private Vector3 overallViewPosition = new Vector3(7.5f, 3.5f, -10); // Center of the scene
+    [SerializeField] private Vector3 overallViewPosition = new Vector3(3.5f, 3.5f, -10); // Center of the scene
 
     private GameObject player;
     private bool isFollowingPlayer = false;

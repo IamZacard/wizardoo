@@ -48,7 +48,7 @@ public class LevelCompleteSpawner : MonoBehaviour
         if (objectToSpawn != null && spawnPoint != null)
         {
             spawnedObject = Instantiate(objectToSpawn, spawnPoint.position, spawnPoint.rotation);
-            ScreenShake.Instance.TriggerShake(.3f, .5f);
+            ScreenShake.Instance.TriggerShake(1f, 3f);
             Debug.Log("Object spawned!");
 
             // Destroy the object after the specified lifetime

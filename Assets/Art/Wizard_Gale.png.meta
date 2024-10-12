@@ -177,6 +177,48 @@ TextureImporter:
       indices: 
       edges: []
       weights: []
+    - serializedVersion: 2
+      name: Wizard_Gale_2
+      rect:
+        serializedVersion: 2
+        x: 64
+        y: 0
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 02c69e2716071cf42b99fe3d7aabaa73
+      internalID: 2138889940
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Wizard_Gale_3
+      rect:
+        serializedVersion: 2
+        x: 96
+        y: 0
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: cde670a64fd7ce443802db25df01afcf
+      internalID: 977340994
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
     outline: []
     physicsShape: []
     bones: []
@@ -190,6 +232,8 @@ TextureImporter:
     nameFileIdTable:
       Wizard_Gale_0: -547942955
       Wizard_Gale_1: -626713221
+      Wizard_Gale_2: 2138889940
+      Wizard_Gale_3: 977340994
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

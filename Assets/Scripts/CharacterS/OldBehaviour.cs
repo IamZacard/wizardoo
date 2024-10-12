@@ -62,7 +62,11 @@ public class OldBehaviour : MonoBehaviour
         movement = GameObject.FindGameObjectWithTag("Player")?.GetComponent<PlayerController>();
         if (charactersText == null)
         {
-            Debug.LogWarning("No GameObject with tag 'Player' found!");
+            Debug.LogWarning("charactersText GameObject with tag 'Player' found!");
+        }
+        else if(movement == null)
+{
+            Debug.LogWarning("movement GameObject with tag 'Player' found!");
         }
     }
 
@@ -117,11 +121,11 @@ public class OldBehaviour : MonoBehaviour
         {
             RevealCellsAroundCharacter();
             Instantiate(revealEffect, transform.position, Quaternion.identity);
-            ScreenShake.Instance.TriggerShake(.2f, 1f);
+            ScreenShake.Instance.TriggerShake(1f, 5f);
             AudioManager.Instance.PlaySound(AudioManager.SoundType.SageReveal, Random.Range(.9f, 1.1f));
         }
 
-        if (Input.GetKeyDown(KeyCode.N) || Input.GetKeyDown(KeyCode.R) || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space))
+        if ((Input.GetKeyDown(KeyCode.N) || Input.GetKeyDown(KeyCode.R) || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space)) && !gameRules.levelComplete)
         {
             currentCastCount = 0;
             charges = PlayerPrefs.GetInt("revealCharges", 1);
@@ -268,6 +272,13 @@ public class OldBehaviour : MonoBehaviour
     private void OpenUpgradePanel()
     {
         upgradePanel.SetActive(true);
+
+        // Remove all listeners to avoid duplicate calls
+        upgradeButton1.onClick.RemoveAllListeners();
+        upgradeButton2.onClick.RemoveAllListeners();
+        upgradeButton3.onClick.RemoveAllListeners();
+
+        // Add listeners for the upgrades
         upgradeButton1.onClick.AddListener(() => SelectUpgrade(1));
         upgradeButton2.onClick.AddListener(() => SelectUpgrade(2));
         upgradeButton3.onClick.AddListener(() => SelectUpgrade(3));
