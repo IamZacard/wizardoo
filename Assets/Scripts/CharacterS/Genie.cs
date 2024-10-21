@@ -152,6 +152,8 @@ public class Genie : MonoBehaviour
         dialogTriggered = true;
         AudioManager.Instance.PlaySound(AudioManager.SoundType.DialogStart, .9f);
 
+        yield return new WaitForSeconds(1f);
+
         isDialogOpen = true;
         dialogBox.SetActive(true);
 

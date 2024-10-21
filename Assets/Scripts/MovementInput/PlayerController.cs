@@ -23,6 +23,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private GameObject flagEffect;
     [SerializeField] private GameObject stepEffect;
     [SerializeField] private GameObject pickUpEffect;
+
     private Tilemap groundTileMap;
     private Tilemap roomTileMap;
     private Tilemap colissionTileMap;
@@ -41,7 +42,7 @@ public class PlayerController : MonoBehaviour
 
     [Header("UI")]
     private Vector3 originalScale;
-    public float scaleNumber = 1.2f;
+    public float _characterModelScaleNumber = 1.2f;
 
     private Board board;
     private Coroutine alphaCoroutine;
@@ -301,8 +302,7 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    private void 
-        Move(Vector2 direction)
+    private void Move(Vector2 direction)
     {
         if (!activePlayer) return; // Prevent playerController if the player is not active
 
@@ -417,7 +417,7 @@ public class PlayerController : MonoBehaviour
 
     private IEnumerator ScaleCharacter()
     {
-        transform.localScale = originalScale * scaleNumber;
+        transform.localScale = originalScale * _characterModelScaleNumber;
         yield return new WaitForSeconds(0.3f);
         transform.localScale = originalScale;
     }
@@ -548,7 +548,7 @@ public class PlayerController : MonoBehaviour
             Cell cell;
             if (gameRules.grid.TryGetCell(cellPos.x, cellPos.y, out cell))
             {
-                if (cell.type == Cell.Type.Mine && !cell.revealed && !cell.flagged)
+                if (cell.type == Cell.Type.Trap && !cell.revealed && !cell.flagged)
                 {
                     Debug.Log("Flagging trap cell at: " + cellPos);
 

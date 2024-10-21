@@ -15,7 +15,7 @@ public class Game : MonoBehaviour
 
     [Header("Trap Difficulty")]
     public float difficulty = .2f;
-    private int trapCount;
+    public int trapCount;
 
     private GameObject player;
 
@@ -49,7 +49,7 @@ public class Game : MonoBehaviour
     public bool gameover;
     public bool levelComplete = false;
     public bool canFlag = false;
-    private bool generated;
+    public bool generated;
     private Board board;
     public CellGrid grid;
 
@@ -240,7 +240,7 @@ public class Game : MonoBehaviour
         {
             if (!generated)
             {
-                grid.GenerateMines(cell, trapCount);
+                grid.GenerateTraps(cell, trapCount);
                 grid.GenerateNumbers();
                 generated = true;
                 canFlag = true;
@@ -257,7 +257,7 @@ public class Game : MonoBehaviour
 
         switch (cell.type)
         {
-            case Cell.Type.Mine:
+            case Cell.Type.Trap:
                 Explode(cell);
                 break;
             case Cell.Type.Empty:
@@ -271,7 +271,7 @@ public class Game : MonoBehaviour
         CheckWinCondition();
 
         // Increment successfulReveals after a successful reveal
-        if (CharacterManager.RevealCellForStep && (cell.type != Cell.Type.Mine && !cell.flagged))
+        if (CharacterManager.RevealCellForStep && (cell.type != Cell.Type.Trap && !cell.flagged))
         {
             successfulReveals++;
 
@@ -337,14 +337,14 @@ public class Game : MonoBehaviour
             // Get the cell at the random position
             if (grid.TryGetCell(randomCellPosition.x, randomCellPosition.y, out Cell randomCell))
             {
-                if (randomCell.type == Cell.Type.Mine && !randomCell.revealed && !randomCell.flagged)
+                if (randomCell.type == Cell.Type.Trap && !randomCell.revealed && !randomCell.flagged)
                 {
-                    // Automatically flag the mine if it's not revealed and not already flagged
+                    // Automatically flag the Trap if it's not revealed and not already flagged
                     randomCell.flagged = true;
                 }
                 else if (!randomCell.revealed)
                 {
-                    // Reveal the cell if it's not a mine and not already revealed
+                    // Reveal the cell if it's not a Trap and not already revealed
                     Reveal(randomCell);
                 }
 
@@ -380,7 +380,7 @@ public class Game : MonoBehaviour
 
     private IEnumerator Flood(Cell cell)
     {
-        if (gameover || cell.revealed || cell.type == Cell.Type.Mine) yield break;
+        if (gameover || cell.revealed || cell.type == Cell.Type.Trap) yield break;
 
         cell.revealed = true;
         board.Draw(grid);
@@ -475,7 +475,7 @@ public class Game : MonoBehaviour
         CheckWinCondition();
     }
 
-    private void TriggerGameOver(Cell cell)
+    public void TriggerGameOver(Cell cell)
     {
         gameover = true;
         Debug.Log("Game Over!");
@@ -505,7 +505,7 @@ public class Game : MonoBehaviour
             for (int y = 0; y < height; y++)
             {
                 Cell currentCell = grid[x, y];
-                if (currentCell.type == Cell.Type.Mine)
+                if (currentCell.type == Cell.Type.Trap)
                 {
                     currentCell.revealed = true;
                 }
@@ -524,7 +524,7 @@ public class Game : MonoBehaviour
                 Cell cell = grid[x, y];
 
                 // Ignore flagged cells and only check non-trap cells
-                if (cell.type != Cell.Type.Mine && !cell.revealed && !cell.flagged)
+                if (cell.type != Cell.Type.Trap && !cell.revealed && !cell.flagged)
                 {
                     Debug.Log($"Cell at {x},{y} is not revealed yet.");
                     allRevealed = false;
@@ -556,7 +556,7 @@ public class Game : MonoBehaviour
                 Cell cell = grid[x, y];
 
                 // If a mine cell is not flagged, set allMinesFlagged to false and exit the loop
-                if (cell.type == Cell.Type.Mine && !cell.flagged)
+                if (cell.type == Cell.Type.Trap && !cell.flagged)
                 {
                     allMinesFlagged = false;
                     Debug.Log($"Mine at {x},{y} is not flagged yet.");
@@ -597,7 +597,7 @@ public class Game : MonoBehaviour
             for (int y = 0; y < height; y++)
             {
                 Cell cell = grid[x, y];
-                if (cell.type == Cell.Type.Mine)
+                if (cell.type == Cell.Type.Trap)
                 {
                     cell.flagged = true;
                 }
@@ -605,7 +605,7 @@ public class Game : MonoBehaviour
         }
     }
 
-    private bool TryGetCellAtMousePosition(out Cell cell)
+    public bool TryGetCellAtMousePosition(out Cell cell)
     {
         Vector3 worldPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
         Vector3Int cellPosition = board.tilemap.WorldToCell(worldPosition);

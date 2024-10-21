@@ -163,16 +163,16 @@ public class OldBehaviour : MonoBehaviour
                     // Try to get the cell at the calculated position
                     if (gameRules.grid.TryGetCell(cellPosition.x, cellPosition.y, out Cell cell))
                     {
-                        if (cell.type == Cell.Type.Mine && !cell.revealed && !cell.flagged)
+                        if (cell.type == Cell.Type.Trap && !cell.revealed && !cell.flagged)
                         {
-                            // Automatically flag the mine if it's not revealed and not already flagged
+                            // Automatically flag the Trap if it's not revealed and not already flagged
                             cell.flagged = true;
                             newFlagsAdded++; // Increase new flag count
                             board.Draw(gameRules.grid);
                         }
                         else if (!cell.revealed)
                         {
-                            // Reveal the cell if it's not a mine and not already revealed
+                            // Reveal the cell if it's not a Trap and not already revealed
                             gameRules.Reveal(cell);
                             board.Draw(gameRules.grid);
                         }

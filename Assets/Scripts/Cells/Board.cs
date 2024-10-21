@@ -11,7 +11,7 @@ public class Board : MonoBehaviour
     public AnimatedTile tileUnknown;
     public Tile tileFloor;
     public Tile tileEmpty;
-    public Tile tileMine;
+    public Tile tileTrap;
     public Tile tileExploded;
     public AnimatedTile tileFlag_anim;
     public Tile tileNum1;
@@ -132,7 +132,7 @@ public class Board : MonoBehaviour
         switch (cell.type)
         {
             case Cell.Type.Empty: return tileEmpty;
-            case Cell.Type.Mine: return cell.exploded ? tileExploded : tileMine;
+            case Cell.Type.Trap: return cell.exploded ? tileExploded : tileTrap;
             case Cell.Type.Number: return GetNumberTile(cell);
             case Cell.Type.Pillar: return null; // Do not display a tile for Pillar
             case Cell.Type.Shrine: return null; // Do not display a tile for Shrine
@@ -168,26 +168,13 @@ public class Board : MonoBehaviour
         Vector3Int gridCellPosition = tilemap.WorldToCell(cellPosition);
         TileBase tile = tilemap.GetTile(gridCellPosition);
 
-        if (tile == tileFloor)
-        {
-            return Cell.Type.Floor;
-        }
-        if (tile == tileEmpty)
-        {
-            return Cell.Type.Empty;
-        }
-        if (tile == tileMine)
-        {
-            return Cell.Type.Mine;
-        }
-        if (tile == tileExploded)
-        {
-            return Cell.Type.Mine; // Treat exploded mine as mine
-        }
-        // Add more checks if there are other tile types
-        return Cell.Type.Empty; // Default return type if no match found
-    }
+        if (tile == tileFloor) return Cell.Type.Floor;
+        if (tile == tileEmpty) return Cell.Type.Empty;
+        if (tile == tileTrap) return Cell.Type.Trap;
+        if (tile == tileExploded) return Cell.Type.Trap;
 
+        return Cell.Type.Empty;
+    }
 
     private bool IsAdjacentToPillar(Vector3Int cellPosition)
     {
@@ -256,7 +243,7 @@ public class Board : MonoBehaviour
 
             if (grid[x, y].type == Cell.Type.Empty && !shrinePositions.Contains(new Vector3Int(x, y, 0)))
             {
-                grid[x, y].type = Cell.Type.Mine;
+                grid[x, y].type = Cell.Type.Trap;
                 trapsPlaced++;
             }
         }
@@ -275,7 +262,7 @@ public class Board : MonoBehaviour
 
                 if (cell.type == Cell.Type.Empty)
                 {
-                    int mineCount = grid.CountAdjacentMines(cell);
+                    int mineCount = grid.CountAdjacentTraps(cell);
 
                     if (mineCount > 0)
                     {
