@@ -117,24 +117,24 @@ public class GaleBehaviour : MonoBehaviour
         UpdateCharacterText();
 
         Vector3Int characterPosition = Vector3Int.FloorToInt(transform.position);
-        List<Vector3Int> nearbyMinePositions = new List<Vector3Int>();
+        List<Vector3Int> nearbyTrapPositions = new List<Vector3Int>();
 
         for (int x = -10; x <= 10; x++)
         {
             for (int y = -10; y <= 10; y++)
             {
                 Vector3Int cellPosition = characterPosition + new Vector3Int(x, y, 0);
-                if (IsWithinGridBounds(cellPosition) && gameRules.grid.TryGetCell(cellPosition.x, cellPosition.y, out Cell cell) && cell.type == Cell.Type.Mine && !cell.flagged)
+                if (IsWithinGridBounds(cellPosition) && gameRules.grid.TryGetCell(cellPosition.x, cellPosition.y, out Cell cell) && cell.type == Cell.Type.Trap && !cell.flagged)
                 {
-                    nearbyMinePositions.Add(cellPosition);
+                    nearbyTrapPositions.Add(cellPosition);
                 }
             }
         }
 
-        if (nearbyMinePositions.Count > 0)
+        if (nearbyTrapPositions.Count > 0)
         {
-            Vector3Int selectedMinePosition = nearbyMinePositions[UnityEngine.Random.Range(0, nearbyMinePositions.Count)];
-            Cell selectedMineCell = gameRules.grid.GetCell(selectedMinePosition.x, selectedMinePosition.y);
+            Vector3Int selectedTrapPosition = nearbyTrapPositions[UnityEngine.Random.Range(0, nearbyTrapPositions.Count)];
+            Cell selectedMineCell = gameRules.grid.GetCell(selectedTrapPosition.x, selectedTrapPosition.y);
             selectedMineCell.flagged = true;
             board.Draw(gameRules.grid);
         }

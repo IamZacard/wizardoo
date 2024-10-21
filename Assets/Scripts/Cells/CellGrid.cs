@@ -26,7 +26,7 @@ public class CellGrid
         }
     }
 
-    public void GenerateMines(Cell startingCell, int amount)
+    public void GenerateTraps(Cell startingCell, int amount)
     {
         int width = Width;
         int height = Height;
@@ -43,10 +43,10 @@ public class CellGrid
                 y = Random.Range(0, height);
                 cell = cells[x, y];
             }
-            while (cell.type == Cell.Type.Mine || IsAdjacent(startingCell, cell) || cell.type == Cell.Type.Pillar || cell.type == Cell.Type.Shrine);
+            while (cell.type == Cell.Type.Trap || IsAdjacent(startingCell, cell) || cell.type == Cell.Type.Pillar || cell.type == Cell.Type.Shrine);
 
             // Assign the cell as a mine
-            cell.type = Cell.Type.Mine;
+            cell.type = Cell.Type.Trap;
         }
     }
 
@@ -61,19 +61,19 @@ public class CellGrid
             {
                 Cell cell = cells[x, y];
 
-                if (cell.type == Cell.Type.Mine)
+                if (cell.type == Cell.Type.Trap)
                 {
                     continue; // Skip generating numbers on mines
                 }
 
-                cell.number = CountAdjacentMines(cell);
+                cell.number = CountAdjacentTraps(cell);
                 cell.type = cell.number > 0 ? Cell.Type.Number : Cell.Type.Empty;
             }
         }
     }
 
 
-    public int CountAdjacentMines(Cell cell)
+    public int CountAdjacentTraps(Cell cell)
     {
         int count = 0;
 
@@ -88,7 +88,7 @@ public class CellGrid
                 int x = cell.position.x + adjacentX;
                 int y = cell.position.y + adjacentY;
 
-                if (TryGetCell(x, y, out Cell adjacent) && adjacent.type == Cell.Type.Mine) {
+                if (TryGetCell(x, y, out Cell adjacent) && adjacent.type == Cell.Type.Trap) {
                     count++;
                 }
             }

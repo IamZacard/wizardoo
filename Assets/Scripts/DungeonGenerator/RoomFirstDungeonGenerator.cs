@@ -1,13 +1,15 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.Tilemaps;
 using Random = UnityEngine.Random;
 
 public class RoomFirstDungeonGenerator : SimpleRandomWalkDungeonGenerator
 {
     [SerializeField]
-    private int minRoomWidth = 4, minRoomHeight = 4;
+    public int minRoomWidth = 4, minRoomHeight = 4;
     [SerializeField]
     private int dungeonWidth = 20, dungeonHeight = 20;
     [SerializeField]
@@ -16,6 +18,18 @@ public class RoomFirstDungeonGenerator : SimpleRandomWalkDungeonGenerator
     [SerializeField]
     private bool randomWalkRooms = false;
 
+    private TilemapVisualizer board;
+    private GameCellGrid grid;
+
+    private void Start()
+    {
+        //GenerateDungeon();
+        board = FindAnyObjectByType<TilemapVisualizer>();
+
+        grid = new GameCellGrid(minRoomWidth, minRoomHeight);
+        board.Draw(grid);
+
+    }
     protected override void RunProceduralGeneration()
     {
         CreateRooms();
@@ -47,6 +61,7 @@ public class RoomFirstDungeonGenerator : SimpleRandomWalkDungeonGenerator
         floor.UnionWith(corridors);
 
         tilemapVisualizer.PaintFloorTiles(floor);
+        //tilemapVisualizer.PaintAndAssignTiles(floor, grid, Cell.Type.Floor);
         WallGenerator.CreateWalls(floor, tilemapVisualizer);
     }
 

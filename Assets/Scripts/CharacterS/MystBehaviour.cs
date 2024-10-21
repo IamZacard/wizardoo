@@ -233,8 +233,8 @@ public class MystBehaviour : MonoBehaviour
 
     private void MoreSteps()
     {
-        stepsOfInvi = 12;
-        Debug.Log("Mystic now has 12 steps of invincibility");
+        stepsOfInvi = 14;
+        Debug.Log("Mystic now has 14 steps of invincibility");
     }
 
     private void DisableMagicBlock()

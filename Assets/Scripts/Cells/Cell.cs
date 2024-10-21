@@ -5,11 +5,12 @@ public class Cell
     public enum Type
     {
         Empty,
-        Mine,
+        Trap,
         Number,
         Floor,
         Pillar,
         Shrine,
+        Wall,
     }
 
     public Vector3Int position;
