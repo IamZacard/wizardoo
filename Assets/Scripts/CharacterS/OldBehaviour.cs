@@ -1,6 +1,4 @@
 using System.Collections;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -64,8 +62,8 @@ public class OldBehaviour : MonoBehaviour
         {
             Debug.LogWarning("charactersText GameObject with tag 'Player' found!");
         }
-        else if(movement == null)
-{
+        else if (movement == null)
+        {
             Debug.LogWarning("movement GameObject with tag 'Player' found!");
         }
     }

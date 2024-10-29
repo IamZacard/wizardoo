@@ -12,7 +12,7 @@ namespace OutlineFx
 
         [SerializeField]
         internal T value = default!;
-    
+
         public bool Enabled
         {
             get => enabled;
@@ -34,19 +34,19 @@ namespace OutlineFx
         public Optional(T value, bool enabled)
         {
             this.enabled = enabled;
-            this.value   = value;
+            this.value = value;
         }
 
         public T GetValue(T disabledValue)
         {
             return enabled ? value : disabledValue;
         }
-        
+
         public T GetValueOrDefault()
         {
             return enabled ? value : default;
         }
-        
+
         public static implicit operator bool(Optional<T> opt)
         {
             return opt.enabled;

@@ -1,15 +1,15 @@
+using System.Collections;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Tilemaps;
-using System.Collections;
 using UnityEngine.Rendering.Universal;
+using UnityEngine.Tilemaps;
 
 public class PlayerController : MonoBehaviour
 {
     private PlayerMovement controls;
     private SpriteRenderer sr;
     private Rigidbody2D rb;
-    private Game gameRules;    
+    private Game gameRules;
     private Shrine shrine;
     private Light2D playerLight;
     private LibrarianSoraya soraya;
@@ -135,17 +135,17 @@ public class PlayerController : MonoBehaviour
             Debug.LogWarning("TextMeshProUGUI component with the specified tag not found!");
         }
 
-        
-         violet = GetComponent<GirlBehaviour>();
-         if (violet != null)
-         {
+
+        violet = GetComponent<GirlBehaviour>();
+        if (violet != null)
+        {
             Debug.Log("Violet object found: " + violet.gameObject.name);
-         }
-         else
-         {
+        }
+        else
+        {
             Debug.LogWarning("Violet not found on player GameObject!");
-         }
-        
+        }
+
     }
 
     private void OnEnable()
@@ -219,7 +219,7 @@ public class PlayerController : MonoBehaviour
         if (shrine?.shrineCellSelection == true && shrine.HasCharges())
         {
             Vector2 cursorHotspot = new Vector2(cellSelectionCursor.width / 2, cellSelectionCursor.height / 2);
-            Cursor.SetCursor(cellSelectionCursor, cursorHotspot, CursorMode.Auto);            
+            Cursor.SetCursor(cellSelectionCursor, cursorHotspot, CursorMode.Auto);
             activePlayer = false;
 
             if (Input.GetMouseButtonDown(0))
@@ -335,8 +335,8 @@ public class PlayerController : MonoBehaviour
             if (CharacterManager.selectedCharacterIndex == 0) //Violet
             {
                 violet.ResetTeleportStatus();
-            }            
-            
+            }
+
 
             // Perform the jump
             Vector3 targetPosition = transform.position + (Vector3)direction;

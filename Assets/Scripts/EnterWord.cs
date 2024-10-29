@@ -1,8 +1,8 @@
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
-using TMPro; // Include TextMeshPro namespace
-using UnityEngine.UI; // Include UI namespace
+using UnityEngine.UI;
 
 public class EnterWord : MonoBehaviour
 {

@@ -2,23 +2,17 @@ using Core;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.Tilemaps;
+using UnityEngine.Rendering.Universal;
+using System;
 
 public abstract class CharacterBase : MonoBehaviour, ICharacterBase
 {
     [Header("CharacterBase")]
     public Stats stats;
-
     public PlayerMovement controls;
-
-    private GameRulesManager game;
-    private GameCellGrid grid;
-    private TilemapVisualizer board;
-    private TrapGenerator trapGen;
-    private NumberGenerator numGen;
-    private RoomFirstDungeonGenerator gen;
+    public bool isActive;
 
     private IInteractable _interactable;
-
     private Vector3 originalScale;
     public float _characterModelScaleNumber = 1.2f;
 
@@ -26,93 +20,56 @@ public abstract class CharacterBase : MonoBehaviour, ICharacterBase
     [SerializeField] private Tilemap roomTileMap;
     [SerializeField] private Tilemap colissionTileMap;
 
-    public bool isActive;
+    private Light2D characterLight;
+
+    private GameRules _game;
+    private CellGrid _grid;
+
     private bool _isInteractionKeyPressed => Input.GetKeyDown(KeyCode.E);
+
+    private void OnEnable() => controls.Enable();
+
+    private void OnDisable() => controls.Disable();
+
+    private void Awake()
+    {
+        controls = new PlayerMovement();
+
+        characterLight = GetComponentInChildren<Light2D>();
+        if (characterLight == null)
+        {
+            Debug.LogError("Light2D component not found. Ensure it's attached as a child object to the character.");
+        }
+        else if (stats != null)
+        {
+            characterLight.pointLightOuterRadius = stats._lightRadius;
+            Debug.Log($"Initial Light Radius set to {stats._lightRadius}");
+        }
+    }
 
     private void Start()
     {
         controls.Main.Movement.performed += ctx => Move(ctx.ReadValue<Vector2>());
 
-        // Initialize original scale
         originalScale = transform.localScale;
 
-        board = FindAnyObjectByType<TilemapVisualizer>();
-        grid = new GameCellGrid(8, 8);
+        // Object assignments (no changes)
+        groundTileMap = GameObject.FindGameObjectWithTag("Board")?.GetComponent<Tilemap>();
+        roomTileMap = GameObject.FindGameObjectWithTag("Room")?.GetComponent<Tilemap>();
+        colissionTileMap = GameObject.FindGameObjectWithTag("Wall")?.GetComponent<Tilemap>();
+        _game = GameObject.FindGameObjectWithTag("GameRules")?.GetComponent<GameRules>();
 
-        trapGen = new TrapGenerator(grid);  // Pass cellGrid as a dependency
-        numGen = new NumberGenerator(grid);         // Assuming it doesn't require parameters
-
-        GameObject boardObject = GameObject.FindGameObjectWithTag("Board");
-        GameObject roomObject = GameObject.FindGameObjectWithTag("Room");
-        GameObject wallObject = GameObject.FindGameObjectWithTag("Wall");
-        GameObject gameRulesObject = GameObject.FindGameObjectWithTag("GameRules");
-
-        if (boardObject != null)
-        {
-            groundTileMap = boardObject.GetComponent<Tilemap>();
-        }
-        else
-        {
-            Debug.LogWarning("No GameObject with tag 'Board' found!");
-        }
-
-        if (roomObject != null)
-        {
-            roomTileMap = roomObject.GetComponent<Tilemap>();
-        }
-        else
-        {
-            Debug.LogWarning("No GameObject with tag 'Room' found!");
-        }
-
-        if (wallObject != null)
-        {
-            colissionTileMap = wallObject.GetComponent<Tilemap>();
-        }
-        else
-        {
-            Debug.LogWarning("No GameObject with tag 'Wall' found!");
-        }
-
-        if (gameRulesObject != null)
-        {
-            game = gameRulesObject.GetComponent<GameRulesManager>();
-        }
-        else
-        {
-            Debug.LogWarning("No GameObject with tag 'GameRules' found!");
-        }
-    }
-
-    private void OnEnable()
-    {
-        controls.Enable();
-    }
-
-    private void OnDisable()
-    {
-        controls.Disable();
-    }
-
-    void Awake()
-    {
-        controls = new PlayerMovement();
+        if (_game != null) _grid = _game._grid;
     }
 
     private void Update()
     {
-        if (isActive)
+        if (!_game.gameover)
         {
             Reveal();
-
-            if (Input.GetMouseButtonDown(1)) // Right-click flag
+            if (Input.GetMouseButtonDown(1) && _game.canFlag && !_game.levelComplete)
             {
                 Flag();
-            }
-
-            if (_isInteractionKeyPressed)
-            {
-                Interact();
             }
         }
     }
@@ -187,6 +144,12 @@ public abstract class CharacterBase : MonoBehaviour, ICharacterBase
 
         // Scale character after jump
         StartCoroutine(ScaleCharacter());
+
+        if (PlayerEventManager.Instance != null)
+        {
+            PlayerEventManager.Instance.TriggerMoveEvent();
+            Debug.Log("Step");
+        }
     }
 
     private Vector3 SnapPosition(Vector3 position)
@@ -205,95 +168,22 @@ public abstract class CharacterBase : MonoBehaviour, ICharacterBase
     }
     #endregion
 
-    #region Flagging
-    public void Flag()
-    {
-        if (!TryGetCellAtMousePosition(out Cell cell) || cell.revealed) return;
-
-        if (cell.flagged)
-        {
-            cell.flagged = false;
-            stats._flagCount += 1;
-        }
-        else if (stats._flagCount > 0)
-        {
-            cell.flagged = true;
-            stats._flagCount -= 1;
-        }
-    }
-
-    public bool TryGetCellAtMousePosition(out Cell cell)
-    {
-        Vector3 worldPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-        Vector3Int cellPosition = board.tilemap.WorldToCell(worldPosition);
-        return grid.TryGetCell(cellPosition.x, cellPosition.y, out cell);
-    }
+    #region RevealingCells
+    public void Reveal() => _game.Reveal();
     #endregion
 
-    #region RevealingCells
-    public void Reveal()
-    {
-        if (TryGetCellAtPlayerPosition(out Cell cell))
-        {
-            if (!game._generated)
-            {
-                trapGen.GenerateTraps(cell, game._trapCount);
-                numGen.GenerateNumbers();
-                game._generated = true;
-                isActive = true;
-            }
-
-            Reveal(cell);
-        }
-    }
-
-    // Inside your Reveal function:
-    public void Reveal(Cell cell)
-    {
-        if (cell.revealed || cell.flagged) return;
-
-        switch (cell.type)
-        {
-            case Cell.Type.Trap:
-                Explode(cell);
-                break;
-            case Cell.Type.Empty:
-                StartCoroutine(game.Flood(cell));
-                break;
-            default:
-                cell.revealed = true;
-                break;
-        }
-
-        game.CheckWinCondition();       
-
-        board.Draw(grid);
-    }
-
-    public bool TryGetCellAtPlayerPosition(out Cell cell)
-    {
-        Vector3 worldPosition = transform.position;
-        Vector3Int cellPosition = board.tilemap.WorldToCell(worldPosition);
-        return grid.TryGetCell(cellPosition.x, cellPosition.y, out cell);
-    }
+    #region Flagging
+    public void Flag() => _game.Flag();
     #endregion
 
     #region Exploding
     public void Explode(Cell cell)
     {
-        TriggerGameOver(cell);
-    }
-
-    public void TriggerGameOver(Cell cell)
-    {
-        Debug.Log("Game Over!");
-
-        cell.exploded = true;
-        cell.revealed = true;
-
-        // Additional game-over logic can go here (e.g., showing a UI panel)
+        _game.TriggerGameOver(cell);
+        PlayerEventManager.TriggerExplodeEvent();
     }
     #endregion
+
 
     #region Interacting
     public void Interact()
@@ -305,13 +195,7 @@ public abstract class CharacterBase : MonoBehaviour, ICharacterBase
     }
     #endregion
 
-    private void OnTriggerEnter2D(Collider2D other)
-    {
-        _interactable = other.GetComponent<IInteractable>();
-    }
+    private void OnTriggerEnter2D(Collider2D other) => _interactable = other.GetComponent<IInteractable>();
 
-    private void OnTriggerExit2D(Collider2D other)
-    {
-        _interactable = null;
-    }
+    private void OnTriggerExit2D(Collider2D other) => _interactable = null;
 }

@@ -81,14 +81,16 @@ public class CellGrid
         {
             for (int adjacentY = -1; adjacentY <= 1; adjacentY++)
             {
-                if (adjacentX == 0 && adjacentY == 0) {
+                if (adjacentX == 0 && adjacentY == 0)
+                {
                     continue;
                 }
 
                 int x = cell.position.x + adjacentX;
                 int y = cell.position.y + adjacentY;
 
-                if (TryGetCell(x, y, out Cell adjacent) && adjacent.type == Cell.Type.Trap) {
+                if (TryGetCell(x, y, out Cell adjacent) && adjacent.type == Cell.Type.Trap)
+                {
                     count++;
                 }
             }
@@ -105,14 +107,16 @@ public class CellGrid
         {
             for (int adjacentY = -1; adjacentY <= 1; adjacentY++)
             {
-                if (adjacentX == 0 && adjacentY == 0) {
+                if (adjacentX == 0 && adjacentY == 0)
+                {
                     continue;
                 }
 
                 int x = cell.position.x + adjacentX;
                 int y = cell.position.y + adjacentY;
 
-                if (TryGetCell(x, y, out Cell adjacent) && !adjacent.revealed && adjacent.flagged) {
+                if (TryGetCell(x, y, out Cell adjacent) && !adjacent.revealed && adjacent.flagged)
+                {
                     count++;
                 }
             }
@@ -123,9 +127,12 @@ public class CellGrid
 
     public Cell GetCell(int x, int y)
     {
-        if (InBounds(x, y)) {
+        if (InBounds(x, y))
+        {
             return cells[x, y];
-        } else {
+        }
+        else
+        {
             return null;
         }
     }

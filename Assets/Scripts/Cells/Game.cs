@@ -1,9 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Tilemaps;
 
 public class Game : MonoBehaviour
 {
@@ -208,7 +206,7 @@ public class Game : MonoBehaviour
         {
             gale.ResetPrefabNum();
         }
-        
+
         if (goblin != null && characterIndex == 4) //Goblin
         {
             goblin.goblinsLuck = goblin.goblinsLuckBasic;
@@ -230,7 +228,7 @@ public class Game : MonoBehaviour
             if (Input.GetMouseButtonDown(1) && canFlag && !gameover && !levelComplete)
             {
                 Flag();
-            }   
+            }
         }
     }
 
@@ -421,7 +419,7 @@ public class Game : MonoBehaviour
         }
 
         UpdateTrapFlagText();
-        
+
         board.Draw(grid);
 
         CheckWinConditionFlags();
@@ -448,7 +446,7 @@ public class Game : MonoBehaviour
             {
                 TriggerGameOver(cell);
                 ScreenShake.Instance.TriggerShake(1f, 5f);
-                AudioManager.Instance.PlaySound(AudioManager.SoundType.ShuffExplotion, 1f);                
+                AudioManager.Instance.PlaySound(AudioManager.SoundType.ShuffExplotion, 1f);
             }
             else
             {
@@ -580,7 +578,7 @@ public class Game : MonoBehaviour
     private void WinGame()
     {
         Debug.Log("Winner!");
-        
+
         ScreenShake.Instance.TriggerShake(2f, 5f);
         AudioManager.Instance.PlaySound(AudioManager.SoundType.MagicBlockReleaseSound, 1f);
         Instantiate(blockDestroyEffect, magicBlock.transform.position, Quaternion.identity);

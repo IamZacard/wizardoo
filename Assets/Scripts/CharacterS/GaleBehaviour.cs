@@ -342,7 +342,7 @@ public class GaleBehaviour : MonoBehaviour
         upgradeButton2.onClick.AddListener(() => SelectUpgrade(2));
         upgradeButton3.onClick.AddListener(() => SelectUpgrade(3));
     }
-    
+
 
     public void ScaleOn(Button button)
     {

@@ -1,14 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 
 
 #pragma warning disable IDE0005
-using Serilog = Meryel.UnityCodeAssist.Serilog;
-using YamlDotNet = Meryel.UnityCodeAssist.YamlDotNet;
 #pragma warning restore IDE0005
 
 
@@ -17,7 +14,7 @@ using YamlDotNet = Meryel.UnityCodeAssist.YamlDotNet;
 
 namespace Meryel.UnityCodeAssist.Editor.Input
 {
-    
+
 
     internal class UnityInputManager
     {
@@ -81,7 +78,7 @@ namespace Meryel.UnityCodeAssist.Editor.Input
                         }
                     }
                     break;
-                
+
             }
         }
 
@@ -170,7 +167,7 @@ namespace Meryel.UnityCodeAssist.Editor.Input
         }
 
 
-        bool CreateBindingsMap([System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out string[]? inputKeys, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)]  out string[]? inputAxis)
+        bool CreateBindingsMap([System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out string[]? inputKeys, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out string[]? inputAxis)
         {
             if (inputManager == null)
             {
@@ -228,7 +225,7 @@ namespace Meryel.UnityCodeAssist.Editor.Input
             else
             {
                 Serilog.Log.Debug("Converted file already exists at {Target}", convertedPath);
-            }    
+            }
 
             return convertedPath;
         }

@@ -1,12 +1,7 @@
-using System.Collections;
-using System.Collections.Generic;
-using System.Collections.Concurrent;
-using UnityEngine;
 using UnityEditor;
 
 
 #pragma warning disable IDE0005
-using Serilog = Meryel.UnityCodeAssist.Serilog;
 #pragma warning restore IDE0005
 
 
@@ -39,7 +34,7 @@ namespace Meryel.UnityCodeAssist.Editor
                 Monitor.Bump();
             else if (counter == 4)
                 NetMQInitializer.Bump();
-            else if(counter >= 5)
+            else if (counter >= 5)
                 EditorApplication.update -= OnUpdate;
         }
 

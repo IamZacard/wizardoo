@@ -1,12 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using static System.IO.Path;
 
 
 #pragma warning disable IDE0005
-using Serilog = Meryel.UnityCodeAssist.Serilog;
 #pragma warning restore IDE0005
 
 

@@ -1,12 +1,8 @@
-using System.Collections;
-using System.Collections.Generic;
 using System.Collections.Concurrent;
-using UnityEngine;
 using UnityEditor;
 
 
 #pragma warning disable IDE0005
-using Serilog = Meryel.UnityCodeAssist.Serilog;
 #pragma warning restore IDE0005
 
 
@@ -30,7 +26,7 @@ namespace Meryel.UnityCodeAssist.Editor
         /// <summary>
         /// Empty method for invoking static class ctor
         /// </summary>
-        public static void Bump() {}
+        public static void Bump() { }
 
         static void Update()
         {

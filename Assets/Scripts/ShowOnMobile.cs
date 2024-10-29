@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class ShowOnMobile : MonoBehaviour
@@ -13,6 +11,6 @@ public class ShowOnMobile : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        
+
     }
 }

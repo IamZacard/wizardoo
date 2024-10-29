@@ -1,7 +1,5 @@
-using UnityEngine;
-using System.Collections;
-using UnityEngine.UI;
 using TMPro;
+using UnityEngine;
 
 public class Timer : MonoBehaviour
 {

@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Random = UnityEngine.Random;
@@ -16,7 +14,7 @@ public class SimpleRandomWalkDungeonGenerator : AbstractDungeonGenerator
     {
         HashSet<Vector2Int> floorPositions = RunRandomWalk(randomWalkParameters, startPosition);
         tilemapVisualizer.Clear();
-        
+
         tilemapVisualizer.PaintFloorTiles(floorPositions);
 
         WallGenerator.CreateWalls(floorPositions, tilemapVisualizer);

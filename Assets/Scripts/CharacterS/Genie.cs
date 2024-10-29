@@ -1,10 +1,7 @@
-using UnityEngine;
-using UnityEngine.UI;
-using TMPro;
 using System.Collections;
-using UnityEngine.Events;
-using Unity.VisualScripting;
 using System.Collections.Generic;
+using TMPro;
+using UnityEngine;
 
 public class Genie : MonoBehaviour
 {

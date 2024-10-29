@@ -71,7 +71,7 @@ public class Board : MonoBehaviour
                 {
                     cell.type = Cell.Type.Pillar;
                     continue;
-                }                
+                }
                 else if (shrinePositions.Contains(cellPosition))
                 {
                     cell.type = Cell.Type.Shrine;
@@ -116,7 +116,7 @@ public class Board : MonoBehaviour
 
     private TileBase GetUnknownTile()
     {
-        if (tileUnknown != null )
+        if (tileUnknown != null)
         {
             return tileUnknown;
         }

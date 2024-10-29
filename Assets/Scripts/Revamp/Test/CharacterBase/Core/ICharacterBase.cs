@@ -1,7 +1,7 @@
-﻿using System;
-using UnityEngine;
+﻿using UnityEngine;
 
-namespace Core {
+namespace Core
+{
     public interface ICharacterBase
     {
         void Move(Vector2 direction);

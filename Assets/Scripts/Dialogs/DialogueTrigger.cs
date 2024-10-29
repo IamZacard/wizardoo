@@ -5,7 +5,7 @@ using UnityEngine;
 public class DialogueCharacter
 {
     public string name;
-    public Sprite icon;    
+    public Sprite icon;
 }
 
 [System.Serializable]
