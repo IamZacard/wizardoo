@@ -19,7 +19,7 @@ public class OrbMovement : MonoBehaviour
     {
         if (movingUp)
         {
-            transform.position = Vector3.MoveTowards(transform.position, targetPosition, Random.Range(1f,1.5f) * Time.deltaTime);
+            transform.position = Vector3.MoveTowards(transform.position, targetPosition, Random.Range(1f, 1.5f) * Time.deltaTime);
             if (Vector3.Distance(transform.position, targetPosition) < 0.01f)
             {
                 movingUp = false;

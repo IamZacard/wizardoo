@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -7,7 +6,6 @@ using System.Text.RegularExpressions;
 
 
 #pragma warning disable IDE0005
-using Serilog = Meryel.UnityCodeAssist.Serilog;
 #pragma warning restore IDE0005
 
 

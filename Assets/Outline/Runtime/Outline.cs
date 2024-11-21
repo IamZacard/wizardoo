@@ -3,13 +3,14 @@ using UnityEngine;
 //  OutlineFx © NullTale - https://x.com/NullTale/
 namespace OutlineFx
 {
-    [ExecuteAlways] [DisallowMultipleComponent]
+    [ExecuteAlways]
+    [DisallowMultipleComponent]
     public abstract class Outline : MonoBehaviour
     {
         internal Renderer _renderer;
 
-        public abstract Color Color {get; set; }
-        
+        public abstract Color Color { get; set; }
+
         // =======================================================================
         private void OnEnable()
         {
@@ -25,7 +26,7 @@ namespace OutlineFx
                     return;
             }
 #endif
-            
+
             OutlineFxFeature.Render(this);
         }
     }

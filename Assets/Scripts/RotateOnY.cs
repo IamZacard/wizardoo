@@ -4,7 +4,7 @@ public class RotateOnY : MonoBehaviour
 {
     public float rotationRangeX = 10f;
     public float rotationRangeY = 10f; // Range of rotation from -10 to 10 degrees
-    
+
     public float duration = 2f; // Duration for one complete rotation cycle
     private float timeElapsed = 0f; // Time elapsed since start
 

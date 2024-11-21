@@ -1,11 +1,8 @@
 ﻿using System;
-using UnityEngine;
 using UnityEditor;
 
 
 #pragma warning disable IDE0005
-using Serilog = Meryel.UnityCodeAssist.Serilog;
-using NetMQ = Meryel.UnityCodeAssist.NetMQ;
 #pragma warning restore IDE0005
 
 
@@ -79,7 +76,7 @@ namespace Meryel.UnityCodeAssist.Editor
 
             Serilog.Log.Debug("NetMQ constructing");
             Publisher = new NetMQPublisher();
-            
+
             RunOnShutdown(OnShutDown);
             Serilog.Log.Debug("NetMQ initialized");
         }

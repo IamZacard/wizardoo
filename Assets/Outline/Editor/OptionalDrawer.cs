@@ -18,7 +18,7 @@ namespace OutlineFx.Editor
 
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
-            var valueProperty   = property.FindPropertyRelative("value");
+            var valueProperty = property.FindPropertyRelative("value");
             var enabledProperty = property.FindPropertyRelative("enabled");
 
             OnGui(position, label, enabledProperty, valueProperty);

@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -13,7 +12,7 @@ public class GirlBehaviour : MonoBehaviour
 
     [Header("Teleport")]
     public bool hasTeleported = false;
-    public bool safeTp = false;    
+    public bool safeTp = false;
     public bool safeTpUpgradeSelected = false;
 
     [SerializeField] private GameObject tpEffect;

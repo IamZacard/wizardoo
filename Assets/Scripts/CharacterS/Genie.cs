@@ -1,10 +1,7 @@
-using UnityEngine;
-using UnityEngine.UI;
-using TMPro;
 using System.Collections;
-using UnityEngine.Events;
-using Unity.VisualScripting;
 using System.Collections.Generic;
+using TMPro;
+using UnityEngine;
 
 public class Genie : MonoBehaviour
 {
@@ -151,6 +148,8 @@ public class Genie : MonoBehaviour
     {
         dialogTriggered = true;
         AudioManager.Instance.PlaySound(AudioManager.SoundType.DialogStart, .9f);
+
+        yield return new WaitForSeconds(1f);
 
         isDialogOpen = true;
         dialogBox.SetActive(true);

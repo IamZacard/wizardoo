@@ -6,14 +6,14 @@ namespace OutlineFx
     [ExecuteAlways]
     public class OutlineFx : Outline
     {
-        public   Color    _color = Color.white;
+        public Color _color = Color.white;
 
         public override Color Color
         {
             get => _color;
             set => _color = value;
         }
-        
+
         public float Alpha
         {
             get => _color.a;

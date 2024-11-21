@@ -1,8 +1,6 @@
-using UnityEngine;
-using UnityEngine.UI; // For using UI elements
-using System.Collections;
-using System.Collections.Generic; // Add this to use List<>
+using System.Collections.Generic;
 using TMPro;
+using UnityEngine;
 
 public class DisplayLevelTimes : MonoBehaviour
 {

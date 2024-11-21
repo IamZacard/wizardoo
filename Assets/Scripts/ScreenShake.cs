@@ -1,6 +1,6 @@
+using Cinemachine;
 using System.Collections;
 using UnityEngine;
-using Cinemachine;
 
 public class ScreenShake : MonoBehaviour
 {

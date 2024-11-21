@@ -1,5 +1,5 @@
-using UnityEngine;
 using TMPro;
+using UnityEngine;
 
 public class FPSDisplay : MonoBehaviour
 {
@@ -8,7 +8,7 @@ public class FPSDisplay : MonoBehaviour
     private int frames = 0; // Frames drawn over the interval
     private float timeleft; // Left time for current interval
 
-    [SerializeField]private TextMeshProUGUI fpsText;
+    [SerializeField] private TextMeshProUGUI fpsText;
     private void Start()
     {
         // Initialize timeleft with updateInterval
@@ -32,6 +32,6 @@ public class FPSDisplay : MonoBehaviour
             timeleft = updateInterval;
             accum = 0.0f;
             frames = 0;
-        }        
+        }
     }
 }

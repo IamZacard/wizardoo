@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 
 #if UNITY_EDITOR_WIN
 using Microsoft.Win32;
@@ -16,7 +15,6 @@ using System.Xml.Linq;
 
 
 #pragma warning disable IDE0005
-using Serilog = Meryel.UnityCodeAssist.Serilog;
 #pragma warning restore IDE0005
 
 

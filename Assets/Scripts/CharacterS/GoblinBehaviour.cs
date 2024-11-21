@@ -1,7 +1,6 @@
 using System.Collections;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Events;
 using UnityEngine.UI;
 
 public class GoblinBehaviour : MonoBehaviour
@@ -75,7 +74,7 @@ public class GoblinBehaviour : MonoBehaviour
 
     private void Update()
     {
-        if(goblinsLuck <= .45f)
+        if (goblinsLuck <= .45f)
         {
             goblinsLuck = .45f;
         }

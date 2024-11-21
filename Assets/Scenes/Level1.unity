@@ -2131,7 +2131,7 @@ MonoBehaviour:
   tileUnknown: {fileID: 11400000, guid: d3aa0e466f1b36840a6f60c6dfbc1b73, type: 2}
   tileFloor: {fileID: 11400000, guid: 05d5864666017aa4693a12bb0dc2d0d6, type: 2}
   tileEmpty: {fileID: 11400000, guid: 22f9db9988bdc6d49bd2a74a1b23922d, type: 2}
-  tileMine: {fileID: 11400000, guid: b3372ce6e6c352c4aabf83b40e364443, type: 2}
+  tileTrap: {fileID: 11400000, guid: b3372ce6e6c352c4aabf83b40e364443, type: 2}
   tileExploded: {fileID: 11400000, guid: 06138f639ce8d1446ac4053c1d137483, type: 2}
   tileFlag_anim: {fileID: 11400000, guid: e9c6d6dd9deb3dd4eaf5d4911475be01, type: 2}
   tileNum1: {fileID: 11400000, guid: fa2556a2a1e7ea9448ae5f84e583dd39, type: 2}
@@ -2233,7 +2233,7 @@ MonoBehaviour:
   tileUnknown: {fileID: 0}
   tileFloor: {fileID: 11400000, guid: 05d5864666017aa4693a12bb0dc2d0d6, type: 2}
   tileEmpty: {fileID: 11400000, guid: 22f9db9988bdc6d49bd2a74a1b23922d, type: 2}
-  tileMine: {fileID: 11400000, guid: b3372ce6e6c352c4aabf83b40e364443, type: 2}
+  tileTrap: {fileID: 0}
   tileExploded: {fileID: 11400000, guid: 06138f639ce8d1446ac4053c1d137483, type: 2}
   tileFlag_anim: {fileID: 11400000, guid: e9c6d6dd9deb3dd4eaf5d4911475be01, type: 2}
   tileNum1: {fileID: 11400000, guid: fa2556a2a1e7ea9448ae5f84e583dd39, type: 2}
@@ -5946,6 +5946,7 @@ MonoBehaviour:
   width: 8
   height: 6
   difficulty: 0.1
+  trapCount: 5
   startPos: {x: -0.5, y: -2.5}
   flagCount: 4
   successfulReveals: 0
@@ -5960,6 +5961,7 @@ MonoBehaviour:
   gameover: 0
   levelComplete: 0
   canFlag: 0
+  generated: 0
   currentLevel: 1
   revealEffect: {fileID: 4725550167897462378, guid: 1f5f0f1379dfe064cbbf56b7b6dc207b, type: 3}
   TrapExplotionEffect: {fileID: 6293669640460170071, guid: b313a70dc75971143b613b771491462e, type: 3}

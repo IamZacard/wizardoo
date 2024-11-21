@@ -1,16 +1,12 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Globalization;
 using UnityEditor;
-using UnityEngine;
 using UnityEditorInternal;
+using UnityEngine;
 
 
 #pragma warning disable IDE0005
-using Serilog = Meryel.UnityCodeAssist.Serilog;
 #pragma warning restore IDE0005
 
 
@@ -19,7 +15,7 @@ using Serilog = Meryel.UnityCodeAssist.Serilog;
 
 namespace Meryel.UnityCodeAssist.Editor.Preferences
 {
-    public class PreferenceMonitor 
+    public class PreferenceMonitor
     {
         private static readonly Lazy<PreferenceMonitor> _instanceOfPlayerPrefs = new Lazy<PreferenceMonitor>(() => new PreferenceMonitor(true));
         private static readonly Lazy<PreferenceMonitor> _instanceOfEditorPrefs = new Lazy<PreferenceMonitor>(() => new PreferenceMonitor(false));
@@ -34,10 +30,10 @@ namespace Meryel.UnityCodeAssist.Editor.Preferences
         /// </summary>
         readonly bool isPlayerPrefs;
 
-#region ErrorValues
+        #region ErrorValues
         private readonly int ERROR_VALUE_INT = int.MinValue;
         private readonly string ERROR_VALUE_STR = "<UCA_ERR_2407201713>";
-#endregion //ErrorValues
+        #endregion //ErrorValues
 
 #pragma warning disable CS0414
         private static string pathToPrefs = String.Empty;
@@ -85,7 +81,7 @@ namespace Meryel.UnityCodeAssist.Editor.Preferences
         public void Bump()
         {
             Serilog.Log.Debug("Bumping preference {IsPlayerPrefs}", isPlayerPrefs);
-            
+
             RetrieveAndSendKeysAndValues(false);
         }
 
@@ -109,7 +105,7 @@ namespace Meryel.UnityCodeAssist.Editor.Preferences
                 pathToPrefs = @"SOFTWARE\Unity\UnityEditor\" + PlayerSettings.companyName + @"\" + PlayerSettings.productName;
             else
                 pathToPrefs = @"Software\Unity Technologies\Unity Editor 5.x";
-            
+
             platformPathPrefix = @"<CurrentUser>";
             entryAccessor = new WindowsPrefStorage(pathToPrefs);
 #elif UNITY_EDITOR_OSX
@@ -189,7 +185,7 @@ namespace Meryel.UnityCodeAssist.Editor.Preferences
         }
 
 
-        
+
 
         private string[]? GetKeys(bool reloadKeys)
         {
@@ -324,7 +320,7 @@ namespace Meryel.UnityCodeAssist.Editor.Preferences
 
         private void LoadKeys(out string[]? userDef, out string[]? unityDef, bool reloadKeys)
         {
-            if(entryAccessor == null)
+            if (entryAccessor == null)
             {
                 userDef = null;
                 unityDef = null;

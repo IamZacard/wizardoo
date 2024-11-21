@@ -1,5 +1,5 @@
 using UnityEngine;
-using UnityEngine.SceneManagement; // Needed for scene management
+using UnityEngine.SceneManagement;
 
 public class RandomMovement : MonoBehaviour
 {

@@ -1,9 +1,8 @@
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
-using UnityEngine.Rendering.Universal; // Required for Light2D
-using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.Rendering.Universal;
 using UnityEngine.UI;
 
 public class LibrarianSoraya : MonoBehaviour
@@ -37,7 +36,7 @@ public class LibrarianSoraya : MonoBehaviour
     public GameObject libUpgradePanel;
     private Vector3 libUpgradePanelStartPosition = new Vector3(0, -925, 0);
     private Vector3 libUpgradePanelEndPosition = new Vector3(0, 0, 0);
-    
+
 
     [Header("Pick1")]
     public Button upgradeButton1;
@@ -55,11 +54,11 @@ public class LibrarianSoraya : MonoBehaviour
     private void Start()
     {
         dialogBox.transform.localPosition = dialogBoxStartPosition;
-        
+
         dialogBox.SetActive(false);
 
         libUpgradePanel.transform.localPosition = libUpgradePanelStartPosition;
-        
+
         libUpgradePanel.SetActive(false);
         warning.SetActive(false);
 
@@ -276,7 +275,7 @@ public class LibrarianSoraya : MonoBehaviour
             yield return null;
         }
         dialogBox.transform.localPosition = toPosition;
-    }    
+    }
 
     private void CloseDialog()
     {

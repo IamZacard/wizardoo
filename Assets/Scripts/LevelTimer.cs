@@ -1,5 +1,5 @@
-using System.Collections.Generic; // For List<>
-using UnityEngine; // For MonoBehaviour
+using System.Collections.Generic;
+using UnityEngine;
 
 public class LevelTimer : MonoBehaviour
 {
