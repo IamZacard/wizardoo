@@ -12,6 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 70eaa99d7648b054e8826c121c4f7c1b, type: 3}
   m_Name: Grid1
   m_EditorClassIdentifier: 
-  width: 0
-  height: 0
-  mineDensity: 0
+  width: 6
+  height: 5
+  trapDensity: 0.15

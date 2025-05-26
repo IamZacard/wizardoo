@@ -1,4 +1,3 @@
-// Grid management system
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -7,10 +6,12 @@ public class GameGrid
     private Cell[,] cells;
     private readonly int width;
     private readonly int height;
+    private bool trapsGenerated = false;
 
     public int Width => width;
     public int Height => height;
     public Cell this[int x, int y] => GetCell(x, y);
+    public bool TrapsGenerated => trapsGenerated;
 
     public GameGrid(int w, int h)
     {
@@ -29,6 +30,7 @@ public class GameGrid
                 cells[x, y] = new Cell(new Vector3Int(x, y, 0));
             }
         }
+        trapsGenerated = false;
     }
 
     public Cell GetCell(int x, int y)
@@ -47,7 +49,6 @@ public class GameGrid
         return x >= 0 && x < width && y >= 0 && y < height;
     }
 
-    // Set special cell types (pillars, shrines)
     public void SetCellType(int x, int y, Cell.CellType type)
     {
         if (TryGetCell(x, y, out Cell cell))
@@ -56,14 +57,19 @@ public class GameGrid
         }
     }
 
-    // Trap generation
     public void GenerateTraps(Vector3Int startPosition, int trapCount)
     {
+        if (trapsGenerated)
+        {
+            Debug.LogWarning("Traps already generated!");
+            return;
+        }
+
         List<Cell> availableCells = GetAvailableCellsForTraps(startPosition);
 
         if (availableCells.Count < trapCount)
         {
-            Debug.LogWarning($"Not enough valid positions for {trapCount} traps. Available: {availableCells.Count}");
+            Debug.LogWarning($"Not enough valid positions for {trapCount} traps. Available: {availableCells.Count}", null);
             trapCount = availableCells.Count;
         }
 
@@ -77,7 +83,13 @@ public class GameGrid
             availableCells.RemoveAt(randomIndex);
         }
 
+        // Mark traps as generated
+        trapsGenerated = true;
+
+        // Regenerate numbers and cell types for all cells
         GenerateNumbers();
+
+        Debug.Log($"Generated {trapCount} traps, avoiding start position {startPosition}");
     }
 
     private List<Cell> GetAvailableCellsForTraps(Vector3Int startPosition)
@@ -90,8 +102,8 @@ public class GameGrid
             {
                 Cell cell = cells[x, y];
 
-                // Skip if can't place trap or adjacent to start position
-                if (!cell.CanPlaceTrap || IsAdjacent(cell.position, startPosition))
+                // Skip if can't place trap, is the start position, or adjacent to start position
+                if (!cell.CanPlaceTrap || cell.position == startPosition || IsAdjacent(cell.position, startPosition))
                     continue;
 
                 available.Add(cell);
@@ -101,7 +113,6 @@ public class GameGrid
         return available;
     }
 
-    // Number generation
     public void GenerateNumbers()
     {
         for (int x = 0; x < width; x++)
@@ -181,7 +192,6 @@ public class GameGrid
         return Mathf.Abs(pos1.x - pos2.x) <= 1 && Mathf.Abs(pos1.y - pos2.y) <= 1;
     }
 
-    // Utility methods for game state
     public List<Cell> GetAllCells()
     {
         List<Cell> allCells = new List<Cell>();
@@ -202,23 +212,19 @@ public class GameGrid
 
     public void FloodFill(Cell startCell)
     {
-        // Initial checks: If it's a trap, protected, or null, we can't flood from it.
-        // We remove 'startCell.revealed' from this initial check, as the flood fill
-        // itself will mark cells as revealed as it processes them.
         if (startCell == null || startCell.type == Cell.CellType.Trap || startCell.IsProtected)
         {
-            Debug.Log($"FloodFill aborted - invalid starting conditions for {startCell?.position}");
+            Debug.Log($"FloodFill aborted - invalid starting conditions for {startCell?.position}", null);
             return;
         }
 
-        Debug.Log($"Starting flood fill from {startCell.position}");
+        Debug.Log($"Starting flood fill from {startCell.position}", null);
 
         Queue<Cell> queue = new Queue<Cell>();
-        // Using a HashSet for 'visited' is smart to prevent re-processing and infinite loops.
         HashSet<Cell> visited = new HashSet<Cell>();
 
         queue.Enqueue(startCell);
-        visited.Add(startCell); // Mark the starting cell as visited immediately
+        visited.Add(startCell);
 
         int cellsRevealed = 0;
 
@@ -226,61 +232,49 @@ public class GameGrid
         {
             Cell current = queue.Dequeue();
 
-            // If the current cell is already revealed, or is a trap/protected, skip it.
-            // This is important for cells added to the queue that might be number cells adjacent to empty cells.
             if (current.revealed || current.type == Cell.CellType.Trap || current.IsProtected)
             {
                 continue;
             }
 
-            // Reveal the current cell (this is where it actually gets marked revealed)
             current.revealed = true;
             cellsRevealed++;
 
-            Debug.Log($"Revealed cell at {current.position} - Type: {current.type}, Number: {current.number}");
+            Debug.Log($"Revealed cell at {current.position} - Type: {current.type}, Number: {current.number}", null);
 
-            // If it's an empty cell (no adjacent traps), continue flooding to adjacent cells
             if (current.type == Cell.CellType.Empty)
             {
                 AddAdjacentCellsToFloodQueue(current, queue, visited);
             }
-            // If it's a number cell, it's revealed, but we don't continue flooding *from* it.
-            // Its function is to be the boundary of the flood.
         }
 
-        Debug.Log($"Flood fill complete - revealed {cellsRevealed} cells");
+        Debug.Log($"Flood fill complete - revealed {cellsRevealed} cells", null);
     }
 
     private void AddAdjacentCellsToFloodQueue(Cell cell, Queue<Cell> queue, HashSet<Cell> visited)
     {
-        // Check all 8 adjacent cells (including diagonals for minesweeper-style flood fill)
         for (int dx = -1; dx <= 1; dx++)
         {
             for (int dy = -1; dy <= 1; dy++)
             {
-                if (dx == 0 && dy == 0) continue; // Skip the center cell
+                if (dx == 0 && dy == 0) continue;
 
                 int x = cell.position.x + dx;
                 int y = cell.position.y + dy;
 
                 if (TryGetCell(x, y, out Cell adjacent))
                 {
-                    // Only add to queue if not already visited, not a trap, and not protected.
-                    // We don't check 'adjacent.revealed' here because we want to add
-                    // number cells that are not yet revealed and will be revealed by this flood.
                     if (!visited.Contains(adjacent) &&
                         adjacent.type != Cell.CellType.Trap && !adjacent.IsProtected)
                     {
                         queue.Enqueue(adjacent);
-                        visited.Add(adjacent); // Mark as visited to avoid re-adding
+                        visited.Add(adjacent);
                     }
                 }
             }
         }
     }
 
-    // Alternative flood fill that only checks 4-directional (up, down, left, right)
-    // Use this if you want more traditional flood fill behavior
     public void FloodFill4Direction(Cell startCell)
     {
         if (startCell == null || startCell.revealed || startCell.type == Cell.CellType.Trap || startCell.IsProtected)
@@ -314,7 +308,6 @@ public class GameGrid
     {
         Vector3Int position = cell.position;
 
-        // Check 4 directions: left, right, down, up
         int[,] directions = { { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 } };
 
         for (int i = 0; i < 4; i++)
@@ -341,7 +334,7 @@ public class GameGrid
             for (int y = 0; y < height; y++)
             {
                 Cell cell = cells[x, y];
-                if (!cell.IsProtected) // Keep pillars and shrines
+                if (!cell.IsProtected)
                 {
                     cell.type = Cell.CellType.Empty;
                     cell.number = 0;
@@ -351,5 +344,6 @@ public class GameGrid
                 cell.exploded = false;
             }
         }
+        trapsGenerated = false;
     }
 }

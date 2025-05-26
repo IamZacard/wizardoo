@@ -1,9 +1,9 @@
-
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
+using DG.Tweening;
 
-// Debug version of BoardRenderer with extensive logging
 [RequireComponent(typeof(Tilemap), typeof(TilemapRenderer))]
 public class BoardRenderer : MonoBehaviour
 {
@@ -13,7 +13,14 @@ public class BoardRenderer : MonoBehaviour
     public TileBase tileTrap;
     public TileBase tileExploded;
     public TileBase tileFlag;
-    public TileBase[] numberTiles; // Index 0 = number 1, Index 1 = number 2, etc.
+    public TileBase[] numberTiles;
+
+    [Header("Reveal Animation Settings")]
+    [SerializeField] private GameObject revealEffectPrefab;
+    [SerializeField] private bool useObjectPooling = true;
+    [SerializeField] private float scaleUpFactor = 1.5f;
+    [SerializeField] private float animationDuration = 0.15f;
+    private List<GameObject> effectPool;
 
     private Tilemap tilemap;
     private TilemapRenderer tilemapRenderer;
@@ -28,11 +35,12 @@ public class BoardRenderer : MonoBehaviour
 
         Debug.Log($"BoardRenderer Awake - Tilemap: {tilemap != null}, TilemapRenderer: {tilemapRenderer != null}");
 
-        // Check if components are properly set up
         if (tilemap == null)
             Debug.LogError("Tilemap component not found!");
         if (tilemapRenderer == null)
             Debug.LogError("TilemapRenderer component not found!");
+
+        effectPool = new List<GameObject>();
     }
 
     public void Initialize(GameGrid grid)
@@ -50,7 +58,6 @@ public class BoardRenderer : MonoBehaviour
 
     private void SetupStaticObjects()
     {
-        // Find and mark pillars
         GameObject[] pillars = GameObject.FindGameObjectsWithTag("Pillar");
         Debug.Log($"Found {pillars.Length} pillars");
 
@@ -64,7 +71,6 @@ public class BoardRenderer : MonoBehaviour
             }
         }
 
-        // Find and mark shrines
         GameObject[] shrines = GameObject.FindGameObjectsWithTag("Shrine");
         Debug.Log($"Found {shrines.Length} shrines");
 
@@ -95,9 +101,6 @@ public class BoardRenderer : MonoBehaviour
 
         Debug.Log($"Drawing grid {gameGrid.Width}x{gameGrid.Height}");
 
-        // Clear existing tiles first
-        tilemap.SetTilesBlock(new BoundsInt(0, 0, 0, gameGrid.Width, gameGrid.Height, 1), new TileBase[gameGrid.Width * gameGrid.Height]);
-
         int tilesDrawn = 0;
 
         for (int x = 0; x < gameGrid.Width; x++)
@@ -115,11 +118,9 @@ public class BoardRenderer : MonoBehaviour
 
         Debug.Log($"Drew {tilesDrawn} tiles");
 
-        // Verify tiles were actually set
         BoundsInt bounds = tilemap.cellBounds;
         Debug.Log($"Tilemap bounds: {bounds}");
 
-        // Check if we have the unknown tile assigned
         if (tileUnknown == null)
         {
             Debug.LogError("tileUnknown is not assigned!");
@@ -132,29 +133,133 @@ public class BoardRenderer : MonoBehaviour
 
     private void DrawCell(Cell cell)
     {
-        // Don't draw tiles over protected cells (they have their own GameObjects)
         if (cell.IsProtected)
         {
             Debug.Log($"Skipping protected cell at {cell.position}");
             return;
         }
 
-        TileBase tileToUse = GetTileForCell(cell);
+        bool wasRevealed = tilemap.GetTile(cell.position) != tileUnknown && tilemap.GetTile(cell.position) != tileFlag;
+        bool isNowRevealed = cell.revealed && !cell.flagged;
 
-        if (tileToUse == null)
+        if (!wasRevealed && isNowRevealed)
         {
-            Debug.LogWarning($"No tile found for cell at {cell.position} (Type: {cell.type}, Revealed: {cell.revealed}, Flagged: {cell.flagged})");
-            return;
+            Debug.Log($"Animating tile reveal for cell at {cell.position}");
+            StartCoroutine(AnimateTileReveal(cell));
+        }
+        else
+        {
+            TileBase tileToUse = GetTileForCell(cell);
+            if (tileToUse == null)
+            {
+                Debug.LogWarning($"No tile found for cell at {cell.position} (Type: {cell.type}, Revealed: {cell.revealed}, Flagged: {cell.flagged})");
+                return;
+            }
+            tilemap.SetTile(cell.position, tileToUse);
         }
 
-        tilemap.SetTile(cell.position, tileToUse);
-
-        // Verify the tile was set
         TileBase setTile = tilemap.GetTile(cell.position);
-        if (setTile == null)
+        if (setTile == null && !isNowRevealed)
         {
             Debug.LogError($"Failed to set tile at {cell.position}");
         }
+    }
+
+    private IEnumerator AnimateTileReveal(Cell cell)
+    {
+        GameObject tempObject = new GameObject("TempTile");
+        tempObject.transform.position = GetWorldPosition(cell) + new Vector3(0.5f, 0.5f, 0);
+        SpriteRenderer spriteRenderer = tempObject.AddComponent<SpriteRenderer>();
+        spriteRenderer.sortingOrder = tilemapRenderer.sortingOrder + 2;
+
+        TileBase currentTile = tilemap.GetTile(cell.position) ?? tileUnknown;
+        Sprite sprite = null;
+
+        if (currentTile is AnimatedTile animatedTile && animatedTile.m_AnimatedSprites != null && animatedTile.m_AnimatedSprites.Length > 0)
+        {
+            sprite = animatedTile.m_AnimatedSprites[0];
+            Debug.Log($"Using AnimatedTile sprite {sprite?.name} at {cell.position}");
+        }
+        else if (currentTile is Tile tile)
+        {
+            sprite = tile.sprite;
+            Debug.Log($"Using Tile sprite {sprite?.name} at {cell.position}");
+        }
+
+        if (sprite != null)
+        {
+            spriteRenderer.sprite = sprite;
+        }
+        else
+        {
+            Debug.LogWarning($"No sprite for current tile at {cell.position} (Tile type: {currentTile?.GetType().Name})");
+        }
+
+        TileBase revealedTile = GetTileForCell(cell);
+
+        tempObject.transform.localScale = Vector3.one;
+        tempObject.transform.DOScale(scaleUpFactor, animationDuration)
+            .SetEase(Ease.OutQuad)
+            .OnComplete(() => {
+                Debug.Log($"Tile scale-up completed at {cell.position}");
+            });
+
+        if (revealEffectPrefab != null)
+        {
+            TriggerRevealEffect(cell);
+        }
+
+        yield return new WaitForSeconds(animationDuration);
+
+        tilemap.SetTile(cell.position, revealedTile);
+        Debug.Log($"Set revealed tile at {cell.position}");
+
+        Destroy(tempObject);
+    }
+
+    private void TriggerRevealEffect(Cell cell)
+    {
+        Vector3 worldPos = GetWorldPosition(cell) + new Vector3(0.5f, 0.5f, 0);
+
+        if (useObjectPooling)
+        {
+            GameObject effect = GetPooledEffect();
+            if (effect != null)
+            {
+                effect.transform.position = worldPos;
+                effect.SetActive(true);
+                StartCoroutine(DisableEffectAfterDuration(effect));
+            }
+            else
+            {
+                effect = Instantiate(revealEffectPrefab, worldPos, Quaternion.identity);
+                effectPool.Add(effect);
+            }
+        }
+        else
+        {
+            Instantiate(revealEffectPrefab, worldPos, Quaternion.identity);
+        }
+
+        Debug.Log($"Triggered reveal effect at {cell.position} for {cell.type}");
+    }
+
+    private GameObject GetPooledEffect()
+    {
+        foreach (GameObject effect in effectPool)
+        {
+            if (!effect.activeInHierarchy)
+            {
+                return effect;
+            }
+        }
+        return null;
+    }
+
+    private IEnumerator DisableEffectAfterDuration(GameObject effect)
+    {
+        yield return new WaitForSeconds(animationDuration);
+        effect.SetActive(false);
     }
 
     private TileBase GetTileForCell(Cell cell)
@@ -169,7 +274,6 @@ public class BoardRenderer : MonoBehaviour
             return tileUnknown;
         }
 
-        // Cell is revealed
         switch (cell.type)
         {
             case Cell.CellType.Empty:
@@ -192,7 +296,6 @@ public class BoardRenderer : MonoBehaviour
         return tileEmpty;
     }
 
-    // Utility methods
     public Cell GetCellAtWorldPosition(Vector3 worldPos)
     {
         Vector3Int cellPos = tilemap.WorldToCell(worldPos);

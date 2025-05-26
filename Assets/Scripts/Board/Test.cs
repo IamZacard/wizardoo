@@ -24,7 +24,7 @@ public class Test : MonoBehaviour
 
     void StartTestGame()
     {
-        gameBoard.StartNewGame(new Vector3Int(1, 1, 0));
+        gameBoard.StartNewGame();
     }
 
     void Update()
@@ -45,7 +45,7 @@ public class Test : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.R))
         {
             Debug.Log("Restarting game...");
-            gameBoard?.StartNewGame(new Vector3Int(1, 1, 0));
+            gameBoard?.StartNewGame();
         }
 
         // T key to test tile placement
@@ -101,6 +101,7 @@ public class Test : MonoBehaviour
             int x = cell.position.x;
             int y = cell.position.y;
             gameBoard.HandleCellClick(x, y);
+            gameBoard.CheckWinCondition();
         }
         else
         {
