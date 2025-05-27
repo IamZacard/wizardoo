@@ -12,19 +12,18 @@ public class GameBoard : MonoBehaviour
     [SerializeField] private BoardRenderer boardRenderer;
 
     [Header("Flood Fill Settings")]
-    [SerializeField] private float revealAnimationDuration = 0.5f; // Increased for visibility
+    [SerializeField] private float revealAnimationDuration = 0.5f;
     [SerializeField] private bool useEightDirections = true;
 
     private GameGrid gameGrid;
     private bool isInitialized;
-    private bool gameStarted;
     private bool isFloodFilling;
     private HashSet<Cell> visitedCells;
 
     public GameGrid Grid => gameGrid;
     public BoardRenderer Renderer => boardRenderer;
     public bool IsInitialized => isInitialized;
-    public bool GameStarted => gameStarted;
+    public bool IsFloodFilling => isFloodFilling; // Expose this property
 
     private void Awake()
     {
@@ -37,10 +36,50 @@ public class GameBoard : MonoBehaviour
         DOTween.Init(true, true, LogBehaviour.ErrorsOnly).SetCapacity(500, 125);
     }
 
+    private void OnEnable()
+    {
+        // Subscribe to game state events
+        GameStateManager.OnGameStarted += HandleGameStarted;
+        GameStateManager.OnStateChanged += HandleStateChanged;
+    }
+
+    private void OnDisable()
+    {
+        // Unsubscribe from events
+        GameStateManager.OnGameStarted -= HandleGameStarted;
+        GameStateManager.OnStateChanged -= HandleStateChanged;
+    }
+
     private void Start()
     {
         Debug.Log("GameBoard Start");
         InitializeBoard();
+    }
+
+    private void HandleGameStarted()
+    {
+        Debug.Log("GameBoard: Game started event received");
+        StartNewGame();
+    }
+
+    private void HandleStateChanged(GameState previousState, GameState newState)
+    {
+        // Handle any board-specific state changes
+        switch (newState)
+        {
+            case GameState.Playing:
+                // Ensure board is ready for gameplay
+                if (!isInitialized)
+                {
+                    InitializeBoard();
+                }
+                break;
+
+            case GameState.Lost:
+                // Reveal all traps when game is lost
+                RevealAllTraps();
+                break;
+        }
     }
 
     public void InitializeBoard()
@@ -54,9 +93,8 @@ public class GameBoard : MonoBehaviour
         boardRenderer.DrawGrid();
 
         isInitialized = true;
-        gameStarted = true; // Changed: Start game immediately without traps
         isFloodFilling = false;
-        Debug.Log("Board initialization complete - ready for first click");
+        Debug.Log("Board initialization complete - ready for gameplay");
     }
 
     public void StartNewGame()
@@ -71,12 +109,17 @@ public class GameBoard : MonoBehaviour
         gameGrid.Reset();
         boardRenderer.DrawGrid();
 
-        gameStarted = true;
         Debug.Log("New game started - traps will be generated on first click");
     }
 
     private void GenerateTrapsAfterFirstClick(Vector3Int firstClickPosition)
     {
+        // Check if we can accept input (game state check)
+        if (!GameStateManager.Instance?.CanAcceptInput ?? false)
+        {
+            return;
+        }
+
         int trapCount = Mathf.RoundToInt(gridConfig.width * gridConfig.height * gridConfig.trapDensity);
         Debug.Log($"Generating {trapCount} traps after first click at {firstClickPosition}");
 
@@ -88,9 +131,16 @@ public class GameBoard : MonoBehaviour
 
     public bool HandleCellClick(int x, int y)
     {
-        if (!gameStarted || !isInitialized || isFloodFilling)
+        // Check game state before processing input
+        if (!GameStateManager.Instance?.CanAcceptInput ?? true)
         {
-            Debug.LogWarning($"Cannot handle click: GameStarted={gameStarted}, IsInitialized={isInitialized}, IsFloodFilling={isFloodFilling}");
+            Debug.LogWarning("Cannot handle click - game state doesn't allow input");
+            return false;
+        }
+
+        if (!isInitialized || isFloodFilling)
+        {
+            Debug.LogWarning($"Cannot handle click: IsInitialized={isInitialized}, IsFloodFilling={isFloodFilling}");
             return false;
         }
 
@@ -109,13 +159,16 @@ public class GameBoard : MonoBehaviour
             cell = gameGrid.GetCell(x, y);
         }
 
-        // Check if clicked cell is a trap (should never happen on first click due to generation logic)
+        // Check if clicked cell is a trap
         if (cell.type == Cell.CellType.Trap)
         {
             Debug.Log($"Trap clicked at {x}, {y} - Game Over!");
             cell.exploded = true;
             cell.revealed = true;
             RefreshVisuals();
+
+            // Trigger game over through state manager
+            GameStateManager.Instance?.LoseGame();
             return false;
         }
 
@@ -125,7 +178,13 @@ public class GameBoard : MonoBehaviour
 
     public bool HandleCellRightClick(int x, int y)
     {
-        if (!gameStarted || !isInitialized || isFloodFilling)
+        // Check game state before processing input
+        if (!GameStateManager.Instance?.CanAcceptInput ?? true)
+        {
+            return false;
+        }
+
+        if (!isInitialized || isFloodFilling)
         {
             return false;
         }
@@ -174,9 +233,15 @@ public class GameBoard : MonoBehaviour
     private IEnumerator SmoothFloodFill(Cell cell)
     {
         isFloodFilling = true;
+        Debug.Log("Flood fill started - game cannot be paused during this operation");
+
         yield return StartCoroutine(Flood(cell));
+
         isFloodFilling = false;
-        Debug.Log("Smooth flood fill complete");
+        Debug.Log("Smooth flood fill complete - game can be paused again");
+
+        // Check win condition after flood fill completes
+        CheckWinCondition();
     }
 
     private IEnumerator Flood(Cell cell)
@@ -232,7 +297,13 @@ public class GameBoard : MonoBehaviour
 
     public bool HandleChordClick(int x, int y)
     {
-        if (!gameStarted || !isInitialized || isFloodFilling)
+        // Check game state before processing input
+        if (!GameStateManager.Instance?.CanAcceptInput ?? true)
+        {
+            return false;
+        }
+
+        if (!isInitialized || isFloodFilling)
         {
             return false;
         }
@@ -280,12 +351,22 @@ public class GameBoard : MonoBehaviour
         }
 
         RefreshVisuals();
+
+        if (hitTrap)
+        {
+            GameStateManager.Instance?.LoseGame();
+        }
+
         return !hitTrap;
     }
 
     public bool CheckWinCondition()
     {
-        if (!gameStarted || !gameGrid.TrapsGenerated)
+        // Only check win condition during active gameplay
+        if (!GameStateManager.Instance?.IsGameActive ?? false)
+            return false;
+
+        if (!gameGrid.TrapsGenerated)
             return false;
 
         var allCells = gameGrid.GetAllCells();
@@ -322,6 +403,8 @@ public class GameBoard : MonoBehaviour
             // Auto-flag any unflagged traps when winning
             AutoFlagRemainingTraps();
 
+            // Trigger win through state manager
+            GameStateManager.Instance?.WinGame();
             return true;
         }
 
@@ -350,6 +433,24 @@ public class GameBoard : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Reveals all traps on the board (used for game over)
+    /// </summary>
+    private void RevealAllTraps()
+    {
+        if (gameGrid == null)
+            return;
+
+        var trapCells = gameGrid.GetCellsByType(Cell.CellType.Trap);
+        foreach (Cell trap in trapCells)
+        {
+            trap.revealed = true;
+        }
+
+        RefreshVisuals();
+        Debug.Log("All traps revealed");
+    }
+
     public Cell GetCellAtWorldPosition(Vector3 worldPos)
     {
         return boardRenderer.GetCellAtWorldPosition(worldPos);
@@ -370,9 +471,17 @@ public class GameBoard : MonoBehaviour
         isInitialized = false;
     }
 
+    /// <summary>
+    /// Override the trap density for future games
+    /// </summary>
+    /// <param name="density">New trap density (0–1)</param>
     public void OverrideTrapDensity(float density)
     {
+        // Clamp to valid range
         gridConfig.trapDensity = Mathf.Clamp01(density);
+        // Mark board so it will be reinitialized with new density
+        isInitialized = false;
+        Debug.Log($"Trap density overridden to {gridConfig.trapDensity}");
     }
 
     public void ResetBoard()
@@ -380,7 +489,6 @@ public class GameBoard : MonoBehaviour
         if (gameGrid != null)
         {
             gameGrid.Reset();
-            gameStarted = true; // Ready for new game
             isFloodFilling = false;
             visitedCells = null;
             RefreshVisuals();

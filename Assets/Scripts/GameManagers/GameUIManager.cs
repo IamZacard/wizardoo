@@ -1,0 +1,265 @@
+// GameUIManager.cs
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using TMPro;
+using DG.Tweening;
+
+public class GameUIManager : MonoBehaviour
+{
+    [Header("UI Panels (in Level1 scene)")]
+    [SerializeField] private GameObject pausePanel;
+    [SerializeField] private GameObject winPanel;
+    [SerializeField] private GameObject losePanel;
+
+    [Header("Gameplay UI")]
+    [SerializeField] private TextMeshProUGUI timerText;
+    [SerializeField] private TextMeshProUGUI flagCountText;
+
+    private GameBoard gameBoard;
+    private bool isAnimating = false;
+
+    private void Awake()
+    {
+        gameBoard = FindObjectOfType<GameBoard>();
+        HideAllPanelsInstant();
+    }
+
+    private void Update()
+    {
+        HandlePauseToggle();
+
+        // Only update UI when game is playing and pause panel is not active
+        if (GameStateManager.Instance.CurrentState == GameState.Playing && !pausePanel.activeSelf)
+        {
+            UpdateGameplayUI();
+        }
+    }
+
+    private void UpdateGameplayUI()
+    {
+        if (timerText != null)
+            timerText.text = GameStateManager.Instance.GetFormattedGameTime();
+
+        UpdateFlagCount();
+    }
+
+    private void HandlePauseToggle()
+    {
+        // Only handle P key when not animating and game state allows it
+        if (Input.GetKeyDown(KeyCode.P) && !isAnimating)
+        {
+            GameState currentState = GameStateManager.Instance.CurrentState;
+
+            if (currentState == GameState.Playing)
+            {
+                // Check if board is currently flood filling - don't allow pause during flood fill
+                if (gameBoard != null && gameBoard.IsFloodFilling)
+                {
+                    Debug.Log("Cannot pause during flood fill operation");
+                    return;
+                }
+
+                OpenPauseMenu();
+            }
+            else if (currentState == GameState.Paused && pausePanel.activeSelf)
+            {
+                ClosePauseMenu();
+            }
+        }
+    }
+
+    private void OpenPauseMenu()
+    {
+        Debug.Log("Opening pause menu");
+        // First pause the game state
+        GameStateManager.Instance.PauseGame();
+        // Then show the panel
+        ShowPanel(pausePanel);
+    }
+
+    private void ClosePauseMenu()
+    {
+        Debug.Log("Closing pause menu");
+        // First hide the panel
+        HidePanel(pausePanel);
+        // Then resume the game state
+        GameStateManager.Instance.ResumeGame();
+    }
+
+
+
+    private void OnEnable()
+    {
+        GameStateManager.OnGameWon += HandleGameWon;
+        GameStateManager.OnGameLost += HandleGameLost;
+        GameStateManager.OnStateChanged += HandleStateChanged;
+    }
+
+    private void OnDisable()
+    {
+        GameStateManager.OnGameWon -= HandleGameWon;
+        GameStateManager.OnGameLost -= HandleGameLost;
+        GameStateManager.OnStateChanged -= HandleStateChanged;
+    }
+
+    private void HandleStateChanged(GameState previousState, GameState newState)
+    {
+        Debug.Log($"UI Manager: State changed from {previousState} to {newState}");
+
+        // Ensure UI state matches game state
+        switch (newState)
+        {
+            case GameState.Playing:
+                // If we're resuming, make sure pause panel is hidden
+                if (previousState == GameState.Paused)
+                {
+                    HidePanel(pausePanel);
+                }
+                break;
+
+            case GameState.Paused:
+                // Pause panel should already be shown by OpenPauseMenu
+                break;
+
+            case GameState.Won:
+            case GameState.Lost:
+                // End game panels are handled by their respective event handlers
+                break;
+        }
+    }
+
+    private void HandleGameWon(float gameTime)
+    {
+        Debug.Log($"Game won in {gameTime:F1} seconds");
+        ShowEndGamePanel(winPanel);
+    }
+
+    private void HandleGameLost()
+    {
+        Debug.Log("Game lost");
+        ShowEndGamePanel(losePanel);
+    }
+
+    private void ShowEndGamePanel(GameObject panel)
+    {
+        // Hide all other panels first
+        HideAllPanelsInstant();
+
+        // Show the end game panel
+        ShowPanel(panel);
+
+        Debug.Log($"Showing end game panel: {panel.name}");
+    }
+
+    private void HideAllPanelsInstant()
+    {
+        if (pausePanel != null) pausePanel.SetActive(false);
+        if (winPanel != null) winPanel.SetActive(false);
+        if (losePanel != null) losePanel.SetActive(false);
+    }
+
+    private void ShowPanel(GameObject panel)
+    {
+        if (panel == null)
+        {
+            Debug.LogWarning("Attempted to show null panel");
+            return;
+        }
+
+        panel.SetActive(true);
+        AnimateChildren(panel);
+
+        // Enable interaction on this panel
+        var cg = panel.GetComponent<CanvasGroup>() ?? panel.AddComponent<CanvasGroup>();
+        cg.interactable = true;
+        cg.blocksRaycasts = true;
+
+        Debug.Log($"Panel {panel.name} shown and interaction enabled");
+    }
+
+    private void HidePanel(GameObject panel)
+    {
+        if (panel == null) return;
+
+        panel.SetActive(false);
+        var cg = panel.GetComponent<CanvasGroup>();
+        if (cg != null)
+        {
+            cg.interactable = false;
+            cg.blocksRaycasts = false;
+        }
+
+        Debug.Log($"Panel {panel.name} hidden and interaction disabled");
+    }
+
+    private void AnimateChildren(GameObject panel)
+    {
+        isAnimating = true;
+        var children = panel.GetComponentsInChildren<Transform>(true);
+
+        // Reset all children to scale 0
+        foreach (var t in children)
+        {
+            if (t == panel.transform) continue;
+            t.localScale = Vector3.zero;
+        }
+
+        // Animate them in using unscaled time so it works even when game is paused
+        var seq = DOTween.Sequence();
+        seq.SetUpdate(true); // This makes the sequence use unscaled time
+
+        foreach (var t in children)
+        {
+            if (t == panel.transform) continue;
+            seq.Join(t.DOScale(1.2f, 0.3f).SetEase(Ease.OutBack).SetUpdate(true));
+        }
+        foreach (var t in children)
+        {
+            if (t == panel.transform) continue;
+            seq.Join(t.DOScale(1f, 0.2f).SetUpdate(true));
+        }
+        seq.OnComplete(() => {
+            isAnimating = false;
+            Debug.Log($"Panel animation completed for {panel.name}");
+        });
+    }
+
+    private void UpdateFlagCount()
+    {
+        if (flagCountText == null || gameBoard?.Grid == null) return;
+
+        int totalTraps = 0;
+        int usedFlags = 0;
+
+        foreach (var cell in gameBoard.Grid.GetAllCells())
+        {
+            if (cell.type == Cell.CellType.Trap) totalTraps++;
+            if (cell.flagged) usedFlags++;
+        }
+
+        int remainingFlags = totalTraps - usedFlags;
+        flagCountText.text = $"Flags: {remainingFlags}";
+    }
+
+    // Public methods for UI buttons
+    public void OnResumeButtonClicked()
+    {
+        if (GameStateManager.Instance.CurrentState == GameState.Paused)
+        {
+            ClosePauseMenu();
+        }
+    }
+
+    public void OnRestartButtonClicked()
+    {
+        HideAllPanelsInstant();
+        GameStateManager.Instance.RestartGame(); // Relies on OnGameStarted event
+                                                 // Removed: gameBoard.StartNewGame() as it's handled by the event
+    }
+
+    public void OnMainMenuButtonClicked()
+    {
+        HideAllPanelsInstant();
+        GameStateManager.Instance.ReturnToMenu();
+    }
+}

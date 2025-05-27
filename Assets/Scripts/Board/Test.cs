@@ -29,32 +29,32 @@ public class Test : MonoBehaviour
 
     void Update()
     {
-        // Left click to reveal cell
+        // Prevent input when game is not accepting
+        if (!GameStateManager.Instance.CanAcceptInput)
+            return;
+
+        // Left click to reveal
         if (Input.GetMouseButtonDown(0))
         {
             RevealCellAtMouse();
         }
-
-        // Right click to flag cell
+        // Right click to flag
         if (Input.GetMouseButtonDown(1))
         {
             FlagCellAtMouse();
         }
-
         // R key to restart
         if (Input.GetKeyDown(KeyCode.R))
         {
             Debug.Log("Restarting game...");
             gameBoard?.StartNewGame();
         }
-
         // T key to test tile placement
         if (Input.GetKeyDown(KeyCode.T))
         {
             TestTilePlacement();
         }
-
-        // Space - reveal all (cheat for testing)
+        // Space + Shift to reveal all
         if (Input.GetKeyDown(KeyCode.Space) && Input.GetKey(KeyCode.LeftShift))
         {
             Debug.Log("Revealing all cells (cheat mode)");
