@@ -224,9 +224,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   groundTileMap: {fileID: 0}
-  collisionTileMap: {fileID: 0}
-  revealedTileMap: {fileID: 0}
-  interactionPrompt: {fileID: 0}
+  interactionPrompt: {fileID: 8321004370904795213, guid: b07a9a27572b6e14d9743b97e42e1688, type: 3}
 --- !u!1 &4858516540831861618
 GameObject:
   m_ObjectHideFlags: 0

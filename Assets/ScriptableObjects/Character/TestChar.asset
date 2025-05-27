@@ -10,14 +10,14 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a0627ca824e6964478430a513ae1d83a, type: 3}
-  m_Name: New Character
+  m_Name: TestChar
   m_EditorClassIdentifier: 
-  characterName: Unnamed Character
-  description: 
-  prefab: {fileID: 0}
+  characterName: Test
+  description: Test char
+  prefab: {fileID: 4670117459594021562, guid: 6c4419ba8b8001740b4a3570f858f02a, type: 3}
   icon: {fileID: 0}
-  flagEffect: {fileID: 0}
-  lightRadius: 1
+  flagEffect: {fileID: 5402626375564937643, guid: 74b1998c133c13147884618432744996, type: 3}
+  lightRadius: 4
   startingGold: 0
   interactionRange: 1.5
   interactionKey: 101

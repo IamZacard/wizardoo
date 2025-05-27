@@ -20,7 +20,16 @@
                     "id": "ae5b51ca-5adf-4d2d-ba56-404412575b47",
                     "expectedControlType": "Button",
                     "processors": "",
-                    "interactions": "",
+                    "interactions": "Press",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Flag",
+                    "type": "Button",
+                    "id": "9dee1601-d583-4a74-88c3-18949b11b948",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "Press",
                     "initialStateCheck": false
                 }
             ],
@@ -149,11 +158,22 @@
                 {
                     "name": "",
                     "id": "b9eba38f-f941-423b-977a-15525b86d260",
-                    "path": "<Gamepad>/buttonSouth",
-                    "interactions": "Press",
+                    "path": "<Mouse>/leftButton",
+                    "interactions": "",
                     "processors": "",
                     "groups": "",
                     "action": "AbilityUsage",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "ae300541-8e10-4132-9135-c11bfd09af0f",
+                    "path": "<Mouse>/rightButton",
+                    "interactions": "Press",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Flag",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }
