@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 8766650062611814656}
   - component: {fileID: 4093469946569933604}
   - component: {fileID: 2282829195573723668}
-  - component: {fileID: 338680353689979741}
+  - component: {fileID: -7942737433013616871}
   m_Layer: 7
   m_Name: Wizard_TestPersona
   m_TagString: Player
@@ -77,7 +77,7 @@ SpriteRenderer:
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 1
+  m_SortingOrder: 2
   m_Sprite: {fileID: -339346496, guid: 0d919d87f51f2a545bdbba3a6d2c6d94, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
@@ -200,7 +200,7 @@ MonoBehaviour:
   m_PointLightInnerAngle: 360
   m_PointLightOuterAngle: 360
   m_PointLightInnerRadius: 1
-  m_PointLightOuterRadius: 4.5
+  m_PointLightOuterRadius: 4
   m_ShapeLightParametricSides: 5
   m_ShapeLightParametricAngleOffset: 0
   m_ShapeLightParametricRadius: 1
@@ -211,7 +211,7 @@ MonoBehaviour:
   - {x: 0.5, y: -0.5, z: 0}
   - {x: 0.5, y: 0.5, z: 0}
   - {x: -0.5, y: 0.5, z: 0}
---- !u!114 &338680353689979741
+--- !u!114 &-7942737433013616871
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -220,14 +220,13 @@ MonoBehaviour:
   m_GameObject: {fileID: 4670117459594021562}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 642a8a0f67160a949a2a2692ad5da249, type: 3}
+  m_Script: {fileID: 11500000, guid: d05d1d12629f48e4cadc84368d5b173e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _characterModelScaleNumber: 1.2
   groundTileMap: {fileID: 0}
-  roomTileMap: {fileID: 0}
-  colissionTileMap: {fileID: 0}
-  isActive: 1
+  collisionTileMap: {fileID: 0}
+  revealedTileMap: {fileID: 0}
+  interactionPrompt: {fileID: 0}
 --- !u!1 &4858516540831861618
 GameObject:
   m_ObjectHideFlags: 0
