@@ -17,7 +17,7 @@ MonoBehaviour:
   prefab: {fileID: 4670117459594021562, guid: 6c4419ba8b8001740b4a3570f858f02a, type: 3}
   icon: {fileID: 0}
   flagEffect: {fileID: 5402626375564937643, guid: 74b1998c133c13147884618432744996, type: 3}
-  lightRadius: 4
+  lightRadius: 3
   startingGold: 0
   interactionRange: 1.5
   interactionKey: 101

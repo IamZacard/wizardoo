@@ -1,5 +1,4 @@
-﻿// GameStateManager.cs
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.SceneManagement;
 using System;
 
@@ -7,15 +6,19 @@ public class GameStateManager : MonoBehaviour
 {
     public static GameStateManager Instance { get; private set; }
 
+    private GameGrid gameGrid;
+
     [Header("Debug")]
     [SerializeField] private bool showDebugLogs = true;
+    [SerializeField] private bool allowEscapeReturnToMenu = true;
 
     private GameState currentState = GameState.None;
     private GameState previousState = GameState.None;
     private float gameTime = 0f;
     private bool isTimerRunning = false;
 
-    // Events for state changes
+    // State events
+    public static event Action<GameState, GameState> OnBeforeStateChange;
     public static event Action<GameState, GameState> OnStateChanged;
     public static event Action OnGameStarted;
     public static event Action OnGamePaused;
@@ -23,46 +26,50 @@ public class GameStateManager : MonoBehaviour
     public static event Action<float> OnGameWon;
     public static event Action OnGameLost;
 
-    // Properties
+    // Public properties
     public GameState CurrentState => currentState;
     public float GameTime => gameTime;
     public bool IsGameActive => currentState == GameState.Playing;
     public bool CanAcceptInput => currentState == GameState.Playing;
 
+    public bool CanMove => currentState == GameState.Playing || currentState == GameState.Won;
+    public bool CanUseAbilities => currentState == GameState.Playing;
+
     private void Awake()
     {
-        if (Instance == null)
-        {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-            LogDebug("Initialized");
-        }
-        else
+        if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
             return;
         }
+
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+        LogDebug("GameStateManager initialized");
     }
 
     private void Start()
     {
-        string scene = SceneManager.GetActiveScene().name;
+        var scene = SceneManager.GetActiveScene().name;
+
         if (scene == "MainMenu")
         {
             SetState(GameState.MainMenu);
         }
         else
         {
-            StartNewGame(); // Initialize game scene as a new game
+            StartNewGame();
         }
     }
 
     private void Update()
     {
         if (isTimerRunning && currentState == GameState.Playing)
+        {
             gameTime += Time.deltaTime;
+        }
 
-        if (Input.GetKeyDown(KeyCode.Escape))
+        if (allowEscapeReturnToMenu && Input.GetKeyDown(KeyCode.Escape))
         {
             if (currentState == GameState.Won || currentState == GameState.Lost)
                 ReturnToMenu();
@@ -71,14 +78,19 @@ public class GameStateManager : MonoBehaviour
 
     public void SetState(GameState newState)
     {
-        if (currentState == newState) return;
+        if (currentState == newState || !Enum.IsDefined(typeof(GameState), newState))
+            return;
 
-        GameState old = currentState;
+        GameState oldState = currentState;
         previousState = currentState;
-        currentState = newState;
-        LogDebug($"{old} → {newState}");
 
-        if (old == GameState.Playing) StopTimer();
+        OnBeforeStateChange?.Invoke(oldState, newState);
+
+        currentState = newState;
+        LogDebug($"State changed: {oldState} → {newState}");
+
+        if (oldState == GameState.Playing)
+            StopTimer();
 
         switch (newState)
         {
@@ -89,9 +101,9 @@ public class GameStateManager : MonoBehaviour
             case GameState.Playing:
                 Time.timeScale = 1f;
                 StartTimer();
-                if (old == GameState.Paused)
+                if (oldState == GameState.Paused)
                 {
-                    OnGameResumed?.Invoke(); // Notify resume without starting new game
+                    OnGameResumed?.Invoke();
                 }
                 break;
 
@@ -113,8 +125,32 @@ public class GameStateManager : MonoBehaviour
                 break;
         }
 
-        OnStateChanged?.Invoke(old, newState);
+        OnStateChanged?.Invoke(oldState, newState);
     }
+
+
+    public void StartNewGame()
+    {
+        ResetTimer();
+        SetState(GameState.Playing);
+        OnGameStarted?.Invoke();
+    }
+
+    //public void RestartGame() => StartNewGame();
+    public void RestartGame()
+    {
+        ResetTimer();
+        CharacterManager.Instance.SpawnCharacter(CharacterManager.Instance.selectedCharacterData);
+
+        SetState(GameState.Playing);
+        OnGameStarted?.Invoke();
+    }
+
+    public void PauseGame() => SetState(GameState.Paused);
+    public void ResumeGame() => SetState(GameState.Playing);
+    public void WinGame() => SetState(GameState.Won);
+    public void LoseGame() => SetState(GameState.Lost);
+    public void ReturnToMenu() => SetState(GameState.MainMenu);
 
     private void LoadMainMenu()
     {
@@ -123,31 +159,9 @@ public class GameStateManager : MonoBehaviour
         SceneManager.LoadScene("MainMenu");
     }
 
-    public void PauseGame() => SetState(GameState.Paused);
-
-    public void ResumeGame()
-    {
-        SetState(GameState.Playing); // Will invoke OnGameResumed if from Paused
-    }
-
-    public void WinGame() => SetState(GameState.Won);
-    public void LoseGame() => SetState(GameState.Lost);
-    public void ReturnToMenu() => SetState(GameState.MainMenu);
-
-    public void StartNewGame()
-    {
-        ResetTimer();
-        SetState(GameState.Playing);
-        OnGameStarted?.Invoke(); // Trigger board reset only here
-    }
-
-    public void RestartGame()
-    {
-        StartNewGame(); // Restart as a new game
-    }
-
     private void StartTimer() => isTimerRunning = true;
     private void StopTimer() => isTimerRunning = false;
+
     private void ResetTimer()
     {
         gameTime = 0f;
@@ -156,19 +170,21 @@ public class GameStateManager : MonoBehaviour
 
     public string GetFormattedGameTime()
     {
-        int m = Mathf.FloorToInt(gameTime / 60f);
-        int s = Mathf.FloorToInt(gameTime % 60f);
-        return $"{m:00}:{s:00}";
+        int minutes = Mathf.FloorToInt(gameTime / 60f);
+        int seconds = Mathf.FloorToInt(gameTime % 60f);
+        return $"{minutes:00}:{seconds:00}";
     }
 
     private void LogDebug(string msg)
     {
-        if (showDebugLogs) Debug.Log($"[GSM] {msg}");
+        if (showDebugLogs)
+            Debug.Log($"[GSM] {msg}");
     }
 
     private void OnDestroy()
     {
-        if (Instance == this) Instance = null;
+        if (Instance == this)
+            Instance = null;
     }
 }
 

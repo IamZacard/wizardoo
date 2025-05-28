@@ -319,8 +319,47 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   gridConfig: {fileID: 11400000, guid: 14e2c9622981eca46be0e111c859398b, type: 2}
   boardRenderer: {fileID: 1761633349}
+  losePanel: {fileID: 0}
   revealAnimationDuration: 0.05
   useEightDirections: 1
+  gameActions:
+    OnTrapRevealed:
+      m_PersistentCalls:
+        m_Calls: []
+    OnTrapExploded:
+      m_PersistentCalls:
+        m_Calls: []
+    OnCellRevealed:
+      m_PersistentCalls:
+        m_Calls: []
+    OnCellFlagged:
+      m_PersistentCalls:
+        m_Calls: []
+    OnCellUnflagged:
+      m_PersistentCalls:
+        m_Calls: []
+    OnGameWon:
+      m_PersistentCalls:
+        m_Calls: []
+    OnGameLost:
+      m_PersistentCalls:
+        m_Calls: []
+    OnFloodFillStarted:
+      m_PersistentCalls:
+        m_Calls: []
+    OnFloodFillCompleted:
+      m_PersistentCalls:
+        m_Calls: []
+  interactionRules:
+    canRevealFlaggedCells: 0
+    canRevealProtectedCells: 0
+    requireTrapsGenerated: 1
+    canFlagRevealedCells: 0
+    canFlagProtectedCells: 0
+    canFlagBeforeTrapsGenerated: 0
+    canStepOnFlaggedCells: 0
+    canStepOnProtectedCells: 0
+    explodeOnTrapStep: 1
 --- !u!1 &537846224
 GameObject:
   m_ObjectHideFlags: 0
@@ -1036,7 +1075,6 @@ GameObject:
   - component: {fileID: 1689134161}
   - component: {fileID: 1689134160}
   - component: {fileID: 1689134162}
-  - component: {fileID: 1689134163}
   m_Layer: 0
   m_Name: GameStateManager
   m_TagString: Untagged
@@ -1089,6 +1127,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   showDebugLogs: 1
+  allowEscapeReturnToMenu: 1
 --- !u!225 &1689134162
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -1101,18 +1140,6 @@ CanvasGroup:
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
---- !u!114 &1689134163
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1689134158}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a66413ecc9cc4d043b65455d5c8b31f8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1 &1697875604
 GameObject:
   m_ObjectHideFlags: 0

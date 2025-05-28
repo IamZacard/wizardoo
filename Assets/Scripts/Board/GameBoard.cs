@@ -1,66 +1,99 @@
-using UnityEngine;
+﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
-using DG.Tweening; // Ensure DOTween is imported
+using System;
+using DG.Tweening;
+
+// Action definitions - data-driven approach
+[System.Serializable]
+public class GameActions
+{
+    [Header("Trap Actions")]
+    public UnityEngine.Events.UnityEvent<Cell> OnTrapRevealed;
+    public UnityEngine.Events.UnityEvent<Cell> OnTrapExploded;
+
+    [Header("Cell Actions")]
+    public UnityEngine.Events.UnityEvent<Cell> OnCellRevealed;
+    public UnityEngine.Events.UnityEvent<Cell> OnCellFlagged;
+    public UnityEngine.Events.UnityEvent<Cell> OnCellUnflagged;
+
+    [Header("Game State Actions")]
+    public UnityEngine.Events.UnityEvent OnGameWon;
+    public UnityEngine.Events.UnityEvent OnGameLost;
+    public UnityEngine.Events.UnityEvent OnFloodFillStarted;
+    public UnityEngine.Events.UnityEvent OnFloodFillCompleted;
+}
+
+[System.Serializable]
+[Tooltip("Can the player reveal cells that are flagged?")]
+public class InteractionRules
+{
+
+    [Header("Reveal Rules")]
+    public bool canRevealFlaggedCells = false;
+    public bool canRevealProtectedCells = false;
+    public bool requireTrapsGenerated = true;
+
+    [Header("Flag Rules")]
+    public bool canFlagRevealedCells = false;
+    public bool canFlagProtectedCells = false;
+    public bool canFlagBeforeTrapsGenerated = false;
+
+    [Header("Step Rules")]
+    public bool canStepOnFlaggedCells = false;
+    public bool canStepOnProtectedCells = false;
+    public bool explodeOnTrapStep = true;
+}
 
 public class GameBoard : MonoBehaviour
 {
-    public static GameBoard Instance { get; private set; } // Singleton for easy access
+    public static GameBoard Instance { get; private set; }
 
     [Header("Grid Settings")]
-    [SerializeField] private GridConfig gridConfig;
+    [Tooltip("Configuration for grid width, height, and trap density")] [SerializeField] private GridConfig gridConfig;
 
     [Header("Components")]
-    [SerializeField] private BoardRenderer boardRenderer;
+    [Tooltip("Reference to the BoardRenderer component")] [SerializeField] private BoardRenderer boardRenderer;
 
-    [Header("Flood Fill Settings")]
-    [SerializeField] private float revealAnimationDuration = 0.5f;
-    [SerializeField] private bool useEightDirections = true;
+    [Header("UI Panels")]
+    [Tooltip("Panel shown when the player loses the game")] [SerializeField] private GameObject losePanel;
+
+    [Header("Animation Settings")]
+    [Tooltip("Duration for reveal animations")] [SerializeField] private float revealAnimationDuration = 0.5f;
+    [Tooltip("Use diagonal directions in flood fill reveal")] [SerializeField] private bool useEightDirections = true;
+
+    [Header("Game Actions - Data Driven")]
+    [Tooltip("Data-driven UnityEvents for game actions")] [SerializeField] private GameActions gameActions;
+    [Header("Interaction Rules")]
+    [Tooltip("Rules governing player interactions with cells")] [SerializeField] private InteractionRules interactionRules;
 
     private GameGrid gameGrid;
     private bool isInitialized;
     private bool isFloodFilling;
-    // Visited cells are only relevant during a single flood fill operation, so no need to be a class member
-    // private HashSet<Cell> visitedCells; 
 
+    // Public properties
     public GameGrid Grid => gameGrid;
     public BoardRenderer Renderer => boardRenderer;
     public bool IsInitialized => isInitialized;
-    public bool IsFloodFilling => isFloodFilling; // Expose this property
+    public bool IsFloodFilling => isFloodFilling;
+    public GameActions Actions => gameActions;
 
+    #region Unity Lifecycle
     private void Awake()
     {
-        if (Instance == null)
-        {
-            Instance = this;
-            DontDestroyOnLoad(gameObject); // Or manage lifecycle based on your game flow
-        }
-        else
-        {
-            Destroy(gameObject);
-        }
-
-        Debug.Log("GameBoard Awake");
-        if (boardRenderer == null)
-        {
-            boardRenderer = GetComponentInChildren<BoardRenderer>();
-            Debug.Log($"BoardRenderer found in children: {boardRenderer != null}");
-        }
-        DOTween.Init(true, true, LogBehaviour.ErrorsOnly).SetCapacity(500, 125);
+        InitializeSingleton();
+        InitializeDOTween();
+        InitializeComponents();
     }
 
     private void OnEnable()
     {
-        // Subscribe to game state events
-        GameStateManager.OnGameStarted += HandleGameStarted;
-        GameStateManager.OnStateChanged += HandleStateChanged;
+        SubscribeToEvents();
     }
 
     private void OnDisable()
     {
-        // Unsubscribe from events
-        GameStateManager.OnGameStarted -= HandleGameStarted;
-        GameStateManager.OnStateChanged -= HandleStateChanged;
+        UnsubscribeFromEvents();
     }
 
     private void Start()
@@ -68,7 +101,322 @@ public class GameBoard : MonoBehaviour
         Debug.Log("GameBoard Start");
         InitializeBoard();
     }
+    #endregion
 
+    #region Initialization
+    private void InitializeSingleton()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+    }
+
+    private void InitializeDOTween()
+    {
+        DOTween.Init(true, true, LogBehaviour.ErrorsOnly).SetCapacity(500, 125);
+    }
+
+    private void InitializeComponents()
+    {
+        Debug.Log("GameBoard Awake");
+        if (boardRenderer == null)
+        {
+            boardRenderer = GetComponentInChildren<BoardRenderer>();
+            Debug.Log($"BoardRenderer found in children: {boardRenderer != null}");
+        }
+    }
+
+    private void SubscribeToEvents()
+    {
+        GameStateManager.OnGameStarted += HandleGameStarted;
+        GameStateManager.OnStateChanged += HandleStateChanged;
+    }
+
+    private void UnsubscribeFromEvents()
+    {
+        GameStateManager.OnGameStarted -= HandleGameStarted;
+        GameStateManager.OnStateChanged -= HandleStateChanged;
+    }
+    #endregion
+
+    #region Main Actions - Clearly Separated
+
+    /// <summary>
+    /// MAIN ACTION: Character steps on a cell
+    /// This is where trap stepping happens!
+    /// </summary>
+    public void HandleCharacterStep(Vector3Int characterGridPosition)
+    {
+        var context = CreateInteractionContext("Character Step", characterGridPosition);
+        if (!ValidateInteraction(context)) return;
+
+        var cell = gameGrid.GetCell(characterGridPosition.x, characterGridPosition.y);
+        if (!CanStepOnCell(cell, context)) return;
+
+        // Generate traps if needed (first interaction)
+        if (!gameGrid.TrapsGenerated)
+        {
+            GenerateTrapsAfterFirstReveal(characterGridPosition);
+            cell = gameGrid.GetCell(characterGridPosition.x, characterGridPosition.y);
+        }
+
+        // 🎯 TRAP STEP ACTION - Easy to find!
+        if (cell.type == Cell.CellType.Trap)
+        {
+            ExecuteTrapStepAction(cell);
+            return;
+        }
+
+        // Regular cell reveal
+        if (!cell.revealed)
+        {
+            RevealCellLogic(cell);
+        }
+    }
+
+    /// <summary>
+    /// MAIN ACTION: Toggle cell flag
+    /// </summary>
+    public void HandleCellFlag(Vector3Int cellPosition, GameObject flagEffectPrefab = null)
+    {
+        var context = CreateInteractionContext("Cell Flag", cellPosition);
+        if (!ValidateInteraction(context)) return;
+
+        var cell = gameGrid.GetCell(cellPosition.x, cellPosition.y);
+        if (!CanFlagCell(cell, context)) return;
+
+        ExecuteFlagToggleAction(cell, flagEffectPrefab);
+    }
+
+    /// <summary>
+    /// MAIN ACTION: Manual cell click (for debugging/chord clicking)
+    /// </summary>
+    public bool HandleManualCellClick(int x, int y)
+    {
+        var context = CreateInteractionContext("Manual Click", new Vector3Int(x, y, 0));
+        if (!ValidateInteraction(context)) return false;
+
+        var cell = gameGrid.GetCell(x, y);
+        if (!CanRevealCell(cell, context)) return false;
+
+        // Generate traps if needed
+        if (!gameGrid.TrapsGenerated)
+        {
+            GenerateTrapsAfterFirstReveal(new Vector3Int(x, y, 0));
+            cell = gameGrid.GetCell(x, y);
+        }
+
+        // Check for trap click
+        if (cell.type == Cell.CellType.Trap)
+        {
+            ExecuteTrapClickAction(cell);
+            return false;
+        }
+
+        RevealCellLogic(cell);
+        return true;
+    }
+    #endregion
+
+    #region Action Execution - All trap actions clearly grouped
+
+    /// <summary>
+    ///  TRAP STEP ACTION - Character stepped on trap
+    /// </summary>
+    private void ExecuteTrapStepAction(Cell trapCell)
+    {
+        Debug.Log($"CHARACTER STEPPED ON TRAP at {trapCell.position} - Game Over!");
+
+        if (interactionRules.explodeOnTrapStep)
+        {
+            trapCell.exploded = true;
+        }
+
+        trapCell.revealed = true;
+        boardRenderer.DrawCell(trapCell);
+
+        // Fire data-driven events
+        gameActions.OnTrapRevealed?.Invoke(trapCell);
+        gameActions.OnTrapExploded?.Invoke(trapCell);
+        gameActions.OnGameLost?.Invoke();
+
+        GameStateManager.Instance?.LoseGame();
+    }
+
+    /// <summary>
+    /// TRAP CLICK ACTION - Manual trap click
+    /// </summary>
+    private void ExecuteTrapClickAction(Cell trapCell)
+    {
+        Debug.Log($"TRAP MANUALLY CLICKED at {trapCell.position} - Game Over!");
+
+        trapCell.exploded = true;
+        trapCell.revealed = true;
+        boardRenderer.DrawCell(trapCell);
+
+        gameActions.OnTrapRevealed?.Invoke(trapCell);
+        gameActions.OnTrapExploded?.Invoke(trapCell);
+        gameActions.OnGameLost?.Invoke();
+
+        GameStateManager.Instance?.LoseGame();
+    }
+
+    /// <summary>
+    /// FLAG TOGGLE ACTION
+    /// </summary>
+    private void ExecuteFlagToggleAction(Cell cell, GameObject flagEffectPrefab)
+    {
+        bool wasFlagged = cell.flagged;
+        cell.flagged = !cell.flagged;
+
+        Debug.Log($"Cell at {cell.position} flag toggled to: {cell.flagged}");
+        boardRenderer.DrawCell(cell);
+
+        // Fire appropriate event
+        if (cell.flagged)
+        {
+            gameActions.OnCellFlagged?.Invoke(cell);
+            SpawnFlagEffect(cell, flagEffectPrefab);
+        }
+        else
+        {
+            gameActions.OnCellUnflagged?.Invoke(cell);
+        }
+
+        CheckWinCondition();
+    }
+
+    private void SpawnFlagEffect(Cell cell, GameObject flagEffectPrefab)
+    {
+        if (flagEffectPrefab != null)
+        {
+            Vector3 worldPos = boardRenderer.GetWorldPosition(cell) + new Vector3(0.5f, 0.5f, 0);
+            Instantiate(flagEffectPrefab, worldPos, Quaternion.identity);
+        }
+    }
+    #endregion
+
+    #region Validation - Rule-based system
+
+    private struct InteractionContext
+    {
+        public string actionName;
+        public Vector3Int position;
+        public bool isValid;
+        public string reason;
+    }
+
+    private InteractionContext CreateInteractionContext(string actionName, Vector3Int position)
+    {
+        return new InteractionContext
+        {
+            actionName = actionName,
+            position = position,
+            isValid = true,
+            reason = ""
+        };
+    }
+
+    private bool ValidateInteraction(InteractionContext context)
+    {
+        if (!GameStateManager.Instance?.CanAcceptInput ?? true)
+        {
+            Debug.LogWarning($"Cannot handle {context.actionName} - game state doesn't allow input");
+            return false;
+        }
+
+        if (!isInitialized || isFloodFilling)
+        {
+            Debug.LogWarning($"Cannot handle {context.actionName}: IsInitialized={isInitialized}, IsFloodFilling={isFloodFilling}");
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool CanStepOnCell(Cell cell, InteractionContext context)
+    {
+        if (cell == null)
+        {
+            Debug.LogWarning($"Invalid cell for {context.actionName} at {context.position}");
+            return false;
+        }
+
+        if (cell.flagged && !interactionRules.canStepOnFlaggedCells)
+        {
+            Debug.LogWarning($"Cannot step on flagged cell at {context.position}");
+            return false;
+        }
+
+        if (cell.IsProtected && !interactionRules.canStepOnProtectedCells)
+        {
+            Debug.LogWarning($"Cannot step on protected cell at {context.position}");
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool CanFlagCell(Cell cell, InteractionContext context)
+    {
+        if (cell == null)
+        {
+            Debug.LogWarning($"Invalid cell for {context.actionName} at {context.position}");
+            return false;
+        }
+
+        if (cell.revealed && !interactionRules.canFlagRevealedCells)
+        {
+            Debug.LogWarning($"Cannot flag revealed cell at {context.position}");
+            return false;
+        }
+
+        if (cell.IsProtected && !interactionRules.canFlagProtectedCells)
+        {
+            Debug.LogWarning($"Cannot flag protected cell at {context.position}");
+            return false;
+        }
+
+        if (!gameGrid.TrapsGenerated && !interactionRules.canFlagBeforeTrapsGenerated)
+        {
+            Debug.Log("Cannot flag cells before first reveal");
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool CanRevealCell(Cell cell, InteractionContext context)
+    {
+        if (cell == null)
+        {
+            Debug.LogWarning($"Invalid cell for {context.actionName} at {context.position}");
+            return false;
+        }
+
+        if (cell.revealed || cell.IsProtected)
+        {
+            Debug.LogWarning($"Cannot reveal cell at {context.position} - already revealed or protected");
+            return false;
+        }
+
+        if (cell.flagged && !interactionRules.canRevealFlaggedCells)
+        {
+            Debug.LogWarning($"Cannot reveal flagged cell at {context.position}");
+            return false;
+        }
+
+        return true;
+    }
+    #endregion
+
+    #region Game Flow
     private void HandleGameStarted()
     {
         Debug.Log("GameBoard: Game started event received");
@@ -77,11 +425,9 @@ public class GameBoard : MonoBehaviour
 
     private void HandleStateChanged(GameState previousState, GameState newState)
     {
-        // Handle any board-specific state changes
         switch (newState)
         {
             case GameState.Playing:
-                // Ensure board is ready for gameplay
                 if (!isInitialized)
                 {
                     InitializeBoard();
@@ -89,7 +435,6 @@ public class GameBoard : MonoBehaviour
                 break;
 
             case GameState.Lost:
-                // Reveal all traps when game is lost
                 RevealAllTraps();
                 break;
         }
@@ -103,7 +448,7 @@ public class GameBoard : MonoBehaviour
 
         gameGrid = new GameGrid(width, height);
         boardRenderer.Initialize(gameGrid);
-        boardRenderer.DrawGrid(); // Initial draw of unknown tiles
+        boardRenderer.DrawGrid();
 
         isInitialized = true;
         isFloodFilling = false;
@@ -120,108 +465,13 @@ public class GameBoard : MonoBehaviour
         }
 
         gameGrid.Reset();
-        boardRenderer.DrawGrid(); // Redraw grid to reset visuals
+        boardRenderer.DrawGrid();
 
         Debug.Log("New game started - traps will be generated on first reveal");
     }
+    #endregion
 
-    // New method: Character steps on a cell, reveals it
-    public void HandleCharacterStep(Vector3Int characterGridPosition)
-    {
-        // Check game state before processing
-        if (!GameStateManager.Instance?.CanAcceptInput ?? true)
-        {
-            Debug.LogWarning("Cannot handle character step - game state doesn't allow input");
-            return;
-        }
-
-        if (!isInitialized || isFloodFilling)
-        {
-            Debug.LogWarning($"Cannot handle character step: IsInitialized={isInitialized}, IsFloodFilling={isFloodFilling}");
-            return;
-        }
-
-        Cell steppedCell = gameGrid.GetCell(characterGridPosition.x, characterGridPosition.y);
-        if (steppedCell == null || steppedCell.flagged || steppedCell.IsProtected)
-        {
-            // Character cannot step on flagged or protected cells to reveal them
-            Debug.LogWarning($"Character stepped on invalid cell at {characterGridPosition.x}, {characterGridPosition.y}");
-            return;
-        }
-
-        // Generate traps on the very first "reveal" action if not already generated
-        if (!gameGrid.TrapsGenerated)
-        {
-            GenerateTrapsAfterFirstReveal(characterGridPosition);
-            // Get the cell again after trap generation as its properties may have changed
-            steppedCell = gameGrid.GetCell(characterGridPosition.x, characterGridPosition.y);
-        }
-
-        // Check if stepped cell is a trap
-        if (steppedCell.type == Cell.CellType.Trap)
-        {
-            Debug.Log($"Character stepped on trap at {steppedCell.position} - Game Over!");
-            steppedCell.exploded = true;
-            steppedCell.revealed = true;
-            boardRenderer.DrawCell(steppedCell); // Update visuals immediately
-            GameStateManager.Instance?.LoseGame(); // Trigger game over
-            return;
-        }
-
-        // If it's an unrevealed cell, reveal it
-        if (!steppedCell.revealed)
-        {
-            RevealCellLogic(steppedCell);
-        }
-    }
-
-    // New method: Toggle cell flag with RMB
-    public void HandleCellFlag(Vector3Int cellPosition, GameObject flagEffectPrefab)
-    {
-        // Player input for movement and most other character actions (e.g., using abilities, flagging cells) are temporarily suspended.
-        if (!GameStateManager.Instance?.CanAcceptInput ?? true)
-        {
-            Debug.LogWarning("Cannot handle flag input - game state doesn't allow input");
-            return;
-        }
-
-        if (!isInitialized || isFloodFilling)
-        {
-            Debug.LogWarning($"Cannot handle flag: IsInitialized={isInitialized}, IsFloodFilling={isFloodFilling}");
-            return;
-        }
-
-        Cell cell = gameGrid.GetCell(cellPosition.x, cellPosition.y);
-        if (cell == null || cell.revealed || cell.IsProtected) // Cannot flag revealed or protected cells
-        {
-            Debug.LogWarning($"Cannot flag invalid cell at {cellPosition.x}, {cellPosition.y}");
-            return;
-        }
-
-        // Don't allow flagging before traps are generated (game hasn't truly started yet)
-        if (!gameGrid.TrapsGenerated)
-        {
-            Debug.Log("Cannot flag cells before first reveal");
-            return;
-        }
-
-        cell.flagged = !cell.flagged; // Toggle the flag state
-        Debug.Log($"Cell at {cellPosition.x}, {cellPosition.y} flag toggled to: {cell.flagged}");
-
-        boardRenderer.DrawCell(cell); // Update visuals for this specific cell
-
-        // Trigger flag effect if applicable
-        if (cell.flagged && flagEffectPrefab != null)
-        {
-            // You might want to pool this effect or handle its lifecycle
-            Vector3 worldPos = boardRenderer.GetWorldPosition(cell) + new Vector3(0.5f, 0.5f, 0);
-            Instantiate(flagEffectPrefab, worldPos, Quaternion.identity);
-        }
-
-        CheckWinCondition(); // Re-check win condition after flagging
-    }
-
-    // New method: Reveal cells around a position (for initial character spawn vision)
+    #region Reveal Logic & Flood Fill
     public void RevealCellsAroundPosition(Vector3Int centerCellPos, int radius)
     {
         if (gameGrid == null) return;
@@ -235,84 +485,18 @@ public class GameBoard : MonoBehaviour
 
                 if (cell != null && !cell.revealed && !cell.flagged)
                 {
-                    // This is for initial reveal, so we assume no traps are generated yet.
-                    // If this is called after traps are generated, then a trap could be revealed here.
-                    // For initial reveal, ensure traps aren't here. This is why GenerateTrapsAfterFirstReveal is important.
                     cell.revealed = true;
-                    boardRenderer.DrawCell(cell); // Update visuals immediately
+                    boardRenderer.DrawCell(cell);
+                    gameActions.OnCellRevealed?.Invoke(cell);
                 }
             }
         }
     }
 
-    private void GenerateTrapsAfterFirstReveal(Vector3Int firstRevealPosition)
-    {
-        // Check if we can accept input (game state check)
-        if (!GameStateManager.Instance?.CanAcceptInput ?? false)
-        {
-            return;
-        }
-
-        int trapCount = Mathf.RoundToInt(gridConfig.width * gridConfig.height * gridConfig.trapDensity);
-        Debug.Log($"Generating {trapCount} traps after first reveal at {firstRevealPosition}");
-
-        gameGrid.GenerateTraps(firstRevealPosition, trapCount);
-        boardRenderer.DrawGrid(); // Redraw entire grid to ensure numbers appear correctly
-
-        Debug.Log("Traps generated successfully");
-    }
-
-    // Renamed from HandleCellClick to differentiate, and adjusted logic
-    public bool HandleManualCellClick(int x, int y) // This might be used for chord clicking or debugging
-    {
-        // Check game state before processing input
-        if (!GameStateManager.Instance?.CanAcceptInput ?? true)
-        {
-            Debug.LogWarning("Cannot handle manual click - game state doesn't allow input");
-            return false;
-        }
-
-        if (!isInitialized || isFloodFilling)
-        {
-            Debug.LogWarning($"Cannot handle manual click: IsInitialized={isInitialized}, IsFloodFilling={isFloodFilling}");
-            return false;
-        }
-
-        Cell cell = gameGrid.GetCell(x, y);
-        if (cell == null || cell.revealed || cell.flagged || cell.IsProtected)
-        {
-            Debug.LogWarning($"Invalid manual cell click at {x}, {y}");
-            return false;
-        }
-
-        // If traps haven't been generated, this click is the first "interaction"
-        if (!gameGrid.TrapsGenerated)
-        {
-            GenerateTrapsAfterFirstReveal(new Vector3Int(x, y, 0));
-            cell = gameGrid.GetCell(x, y); // Get the cell again after trap generation
-        }
-
-        // Check if clicked cell is a trap
-        if (cell.type == Cell.CellType.Trap)
-        {
-            Debug.Log($"Trap clicked at {x}, {y} - Game Over!");
-            cell.exploded = true;
-            cell.revealed = true;
-            boardRenderer.DrawCell(cell); // Update visuals immediately
-            GameStateManager.Instance?.LoseGame();
-            return false;
-        }
-
-        RevealCellLogic(cell);
-        return true;
-    }
-
-    // Consolidated reveal logic
     private void RevealCellLogic(Cell cell)
     {
         if (cell == null || cell.revealed || cell.type == Cell.CellType.Trap || cell.IsProtected || cell.flagged)
         {
-            // Do not reveal if already revealed, is a trap, protected, or flagged.
             return;
         }
 
@@ -321,28 +505,29 @@ public class GameBoard : MonoBehaviour
         if (cell.type == Cell.CellType.Empty)
         {
             Debug.Log($"Starting smooth flood fill from {cell.position}");
-            // Reset visitedCells for each new flood fill operation
             StartCoroutine(SmoothFloodFill(cell, new HashSet<Cell>()));
         }
         else
         {
             cell.revealed = true;
-            boardRenderer.DrawCell(cell); // Update visuals for this specific cell
-            CheckWinCondition(); // Check win condition immediately after revealing
+            boardRenderer.DrawCell(cell);
+            gameActions.OnCellRevealed?.Invoke(cell);
+            CheckWinCondition();
         }
     }
 
     private IEnumerator SmoothFloodFill(Cell startCell, HashSet<Cell> visited)
     {
         isFloodFilling = true;
+        gameActions.OnFloodFillStarted?.Invoke();
         Debug.Log("Flood fill started - game cannot be paused during this operation");
 
         yield return StartCoroutine(Flood(startCell, visited));
 
         isFloodFilling = false;
+        gameActions.OnFloodFillCompleted?.Invoke();
         Debug.Log("Smooth flood fill complete - game can be paused again");
 
-        // Check win condition after flood fill completes
         CheckWinCondition();
     }
 
@@ -355,7 +540,8 @@ public class GameBoard : MonoBehaviour
 
         visited.Add(cell);
         cell.revealed = true;
-        boardRenderer.DrawCell(cell); // Update visuals for this cell
+        boardRenderer.DrawCell(cell);
+        gameActions.OnCellRevealed?.Invoke(cell);
         Debug.Log($"Revealed cell at {cell.position} - Type: {cell.type}, Number: {cell.number}");
 
         yield return new WaitForSeconds(revealAnimationDuration);
@@ -395,11 +581,28 @@ public class GameBoard : MonoBehaviour
                 }
             }
         }
-    }   
+    }
+    #endregion
+
+    #region Win/Loss Logic
+    private void GenerateTrapsAfterFirstReveal(Vector3Int firstRevealPosition)
+    {
+        if (!GameStateManager.Instance?.CanAcceptInput ?? false)
+        {
+            return;
+        }
+
+        int trapCount = Mathf.RoundToInt(gridConfig.width * gridConfig.height * gridConfig.trapDensity);
+        Debug.Log($"Generating {trapCount} traps after first reveal at {firstRevealPosition}");
+
+        gameGrid.GenerateTraps(firstRevealPosition, trapCount);
+        boardRenderer.DrawGrid();
+
+        Debug.Log("Traps generated successfully");
+    }
 
     public bool CheckWinCondition()
     {
-        // Only check win condition during active gameplay
         if (!GameStateManager.Instance?.IsGameActive ?? false)
             return false;
 
@@ -407,8 +610,6 @@ public class GameBoard : MonoBehaviour
             return false;
 
         var allCells = gameGrid.GetAllCells();
-
-        // Count different cell states
         int totalTraps = 0;
         int flaggedTraps = 0;
         int unrevealedNonTraps = 0;
@@ -427,20 +628,14 @@ public class GameBoard : MonoBehaviour
             }
         }
 
-        // Win condition 1: All traps are flagged
         bool allTrapsFlagged = (totalTraps > 0 && flaggedTraps == totalTraps);
-
-        // Win condition 2: All non-trap cells are revealed
         bool allNonTrapsRevealed = (unrevealedNonTraps == 0);
 
         if (allTrapsFlagged || allNonTrapsRevealed)
         {
             Debug.Log($"Game Won! Condition: {(allTrapsFlagged ? "All traps flagged" : "All non-traps revealed")}");
-
-            // Auto-flag any unflagged traps when winning
             AutoFlagRemainingTraps();
-
-            // Trigger win through state manager
+            gameActions.OnGameWon?.Invoke();
             GameStateManager.Instance?.WinGame();
             return true;
         }
@@ -459,20 +654,18 @@ public class GameBoard : MonoBehaviour
             {
                 cell.flagged = true;
                 anyTrapsAutoFlagged = true;
+                gameActions.OnCellFlagged?.Invoke(cell);
                 Debug.Log($"Auto-flagged trap at {cell.position}");
             }
         }
 
         if (anyTrapsAutoFlagged)
         {
-            boardRenderer.DrawGrid(); // Redraw entire grid to show new flags
+            boardRenderer.DrawGrid();
             Debug.Log("All remaining traps have been auto-flagged!");
         }
     }
 
-    /// <summary>
-    /// Reveals all traps on the board (used for game over)
-    /// </summary>
     private void RevealAllTraps()
     {
         if (gameGrid == null)
@@ -482,12 +675,15 @@ public class GameBoard : MonoBehaviour
         foreach (Cell trap in trapCells)
         {
             trap.revealed = true;
+            gameActions.OnTrapRevealed?.Invoke(trap);
         }
 
-        boardRenderer.DrawGrid(); // Redraw grid to show revealed traps
+        boardRenderer.DrawGrid();
         Debug.Log("All traps revealed");
     }
+    #endregion
 
+    #region Public Utility Methods
     public Cell GetCellAtWorldPosition(Vector3 worldPos)
     {
         return boardRenderer.GetCellAtWorldPosition(worldPos);
@@ -495,7 +691,6 @@ public class GameBoard : MonoBehaviour
 
     public void RefreshVisuals()
     {
-        // This method can be kept for a full redraw if needed, but DrawCell is more efficient
         if (isInitialized)
         {
             boardRenderer.DrawGrid();
@@ -506,18 +701,12 @@ public class GameBoard : MonoBehaviour
     {
         gridConfig.width = w;
         gridConfig.height = h;
-        isInitialized = false; // Force re-initialization on next game start
+        isInitialized = false;
     }
 
-    /// <summary>
-    /// Override the trap density for future games
-    /// </summary>
-    /// <param name="density">New trap density (0�1)</param>
     public void OverrideTrapDensity(float density)
     {
-        // Clamp to valid range
         gridConfig.trapDensity = Mathf.Clamp01(density);
-        // Mark board so it will be reinitialized with new density
         isInitialized = false;
         Debug.Log($"Trap density overridden to {gridConfig.trapDensity}");
     }
@@ -528,9 +717,9 @@ public class GameBoard : MonoBehaviour
         {
             gameGrid.Reset();
             isFloodFilling = false;
-            // No need to reset visitedCells as it's a local variable in flood fill methods
-            boardRenderer.DrawGrid(); // Redraw grid
+            boardRenderer.DrawGrid();
             Debug.Log("Board reset - ready for first reveal");
         }
     }
+    #endregion
 }
