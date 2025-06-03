@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -17,15 +17,22 @@ public class CharacterBase : MonoBehaviour
 
     // Components
     private PlayerMovement controls;
+    private CharacterSpellManager spellManager;
     private SpriteRenderer spriteRenderer;
     private Rigidbody2D rb;
 
     // State management
     public CharacterState CurrentState { get; private set; } = CharacterState.Idle;
 
+    // For Ethereal Shield / Invulnerability (Mystic)
+    private int etherealShieldStepsRemaining = 0;
+
     // Movement
     private bool isMoving = false;
     private Vector2 lastMoveDirection;
+
+    // Property to get current grid position
+    public Vector3Int GridPosition => groundTileMap != null ? groundTileMap.WorldToCell(transform.position) : Vector3Int.zero;
 
     // Interaction
     private List<IInteractable> nearbyInteractables = new List<IInteractable>();
@@ -35,6 +42,16 @@ public class CharacterBase : MonoBehaviour
         controls = new PlayerMovement();
         rb = GetComponent<Rigidbody2D>();
         spriteRenderer = GetComponent<SpriteRenderer>();
+
+        spellManager = GetComponent<CharacterSpellManager>(); // This is the line that might be failing
+        if (spellManager == null)
+        {
+            Debug.LogError($"CharacterBase: GetComponent<CharacterSpellManager>() returned NULL for '{gameObject.name}' in Awake!", this); // DIAGNOSTIC 3: Report failure
+        }
+        else
+        {
+            Debug.Log($"CharacterBase: Successfully found CharacterSpellManager for '{gameObject.name}' in Awake.", this); // DIAGNOSTIC 3: Report success
+        }
 
         if (groundTileMap == null)
         {
@@ -52,15 +69,15 @@ public class CharacterBase : MonoBehaviour
     private void OnEnable()
     {
         controls.Enable();
-        // Correct way to subscribe: reference the method directly
         controls.Main.Flag.performed += HandleFlaggingInputPerformed;
+        controls.Main.AbilityUsage.performed += HandleAbilityUsageInputPerformed; 
     }
 
     private void OnDisable()
     {
         controls.Disable();
-        // Correct way to unsubscribe: reference the *same* method directly
         controls.Main.Flag.performed -= HandleFlaggingInputPerformed;
+        controls.Main.AbilityUsage.performed -= HandleAbilityUsageInputPerformed;
     }
 
     private void Start()
@@ -80,6 +97,12 @@ public class CharacterBase : MonoBehaviour
         if (spriteRenderer != null && data.icon != null)
         {
             spriteRenderer.sprite = data.icon;
+        }
+
+        // Initialize spell manager FIRST, before any other operations       
+        if (spellManager != null)
+        {
+            spellManager.Initialize(data);
         }
 
         transform.position = SnapToGrid(transform.position);
@@ -118,6 +141,20 @@ public class CharacterBase : MonoBehaviour
         if (direction != Vector2.zero && CanMove(direction))
         {
             StartCoroutine(MoveToPosition(direction));
+        }
+    }
+
+    private void HandleAbilityUsageInputPerformed(InputAction.CallbackContext context)
+    {
+        if (!GameStateManager.Instance.CanUseAbilities) return;
+
+        if (spellManager != null)
+        {
+            spellManager.TryCastActiveSpell();
+        }
+        else
+        {
+            Debug.LogWarning("CharacterSpellManager not found on character. Cannot cast spell.");
         }
     }
 
@@ -299,6 +336,38 @@ public class CharacterBase : MonoBehaviour
         }
     }
 
+    public void SetEtherealShieldSteps(int steps)
+    {
+        etherealShieldStepsRemaining = steps;
+        if (steps > 0)
+        {
+            SetState(CharacterState.Invulnerable);
+            Debug.Log($"{CharacterData.characterName} is now invulnerable for {steps} steps.");
+        }
+        else
+        {
+            if (CurrentState == CharacterState.Invulnerable)
+            {
+                SetState(CharacterState.Idle);
+            }
+        }
+    }
+
+    // NEW: Method to decrement invulnerability steps
+    public void DecrementEtherealShieldSteps()
+    {
+        if (etherealShieldStepsRemaining > 0)
+        {
+            etherealShieldStepsRemaining--;
+            Debug.Log($"{CharacterData.characterName} Ethereal Shield steps remaining: {etherealShieldStepsRemaining}");
+        }
+    }
+
+    public bool IsInvulnerable()
+    {
+        return etherealShieldStepsRemaining > 0;
+    }
+
     private void OnTriggerEnter2D(Collider2D other)
     {
         var interactable = other.GetComponent<IInteractable>();
@@ -315,6 +384,37 @@ public class CharacterBase : MonoBehaviour
         {
             nearbyInteractables.Remove(interactable);
         }
+    }
+
+    /*public void MoveCharacterTo(Vector3Int targetGridPosition)
+    {
+        if (groundTileMap == null)
+        {
+            Debug.LogError("CharacterBase: groundTileMap is not assigned! Cannot move character.");
+            return;
+        }
+
+        Vector3 worldPosition = groundTileMap.CellToWorld(targetGridPosition) + new Vector3(0.5f, 0.5f, 0);
+
+        transform.position = worldPosition;
+
+        Debug.Log($"Character moved to grid position: {targetGridPosition} (World: {worldPosition})");
+    }*/
+
+    public void MoveCharacterTo(Vector3Int targetGridPosition)
+    {
+        if (groundTileMap == null)
+        {
+            Debug.LogError("CharacterBase: groundTileMap is not assigned! Cannot move character.");
+            return;
+        }
+
+        Vector3 worldPosition = groundTileMap.CellToWorld(targetGridPosition) + new Vector3(0.5f, 0.5f, 0);
+        transform.position = worldPosition;
+
+        GameBoard.Instance?.HandleCharacterStep(GetGridPosition());
+
+        Debug.Log($"Character teleported to grid position: {targetGridPosition} (World: {worldPosition})");
     }
 
     public void ForceSetState(CharacterState state)

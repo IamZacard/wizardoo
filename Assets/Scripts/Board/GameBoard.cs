@@ -166,7 +166,7 @@ public class GameBoard : MonoBehaviour
             cell = gameGrid.GetCell(characterGridPosition.x, characterGridPosition.y);
         }
 
-        // 🎯 TRAP STEP ACTION - Easy to find!
+        // TRAP STEP ACTION - Easy to find!
         if (cell.type == Cell.CellType.Trap)
         {
             ExecuteTrapStepAction(cell);

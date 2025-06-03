@@ -115,7 +115,7 @@ public partial class @PlayerMovement: IInputActionCollection2, IDisposable
                     ""name"": ""ArrowKeys"",
                     ""id"": ""b5309a55-3811-408e-b142-e6f71ac1cba0"",
                     ""path"": ""2DVector"",
-                    ""interactions"": ""Press"",
+                    ""interactions"": """",
                     ""processors"": ""NormalizeVector2"",
                     ""groups"": """",
                     ""action"": ""Movement"",
