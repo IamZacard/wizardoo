@@ -9,9 +9,8 @@ public class CharacterSpellManager : MonoBehaviour
     private CharacterBase characterBase;
     private CharacterData characterData;
     private Dictionary<SpellData, int> spellCharges = new Dictionary<SpellData, int>();
-    private bool isInitialized = false;
+    private bool isInitialized;
 
-    // Events for UI updates
     public static event Action<string, int, int> OnSpellChargesUpdated;
     public static event Action<SpellData, CharacterBase> OnSpellCastAttempted;
     public static event Action<SpellData, CharacterBase> OnSpellCastSuccess;
@@ -29,8 +28,7 @@ public class CharacterSpellManager : MonoBehaviour
 
     private void OnEnable()
     {
-        // Only subscribe to events after we're properly initialized
-        if (isInitialized && GameBoard.Instance != null && GameBoard.Instance.Actions != null)
+        if (isInitialized && GameBoard.Instance?.Actions != null)
         {
             GameBoard.Instance.Actions.OnCellRevealed.AddListener(HandleCellRevealed);
             GameBoard.Instance.Actions.OnTrapExploded.AddListener(HandleTrapExploded);
@@ -39,19 +37,10 @@ public class CharacterSpellManager : MonoBehaviour
 
     private void OnDisable()
     {
-        if (GameBoard.Instance != null && GameBoard.Instance.Actions != null)
+        if (GameBoard.Instance?.Actions != null)
         {
             GameBoard.Instance.Actions.OnCellRevealed.RemoveListener(HandleCellRevealed);
             GameBoard.Instance.Actions.OnTrapExploded.RemoveListener(HandleTrapExploded);
-        }
-    }
-
-    private void Start()
-    {
-        // Don't initialize here - wait for Initialize() to be called
-        if (isInitialized)
-        {
-            InitializeSpellCharges();
         }
     }
 
@@ -59,53 +48,35 @@ public class CharacterSpellManager : MonoBehaviour
     {
         characterData = data;
         isInitialized = true;
+        spellCharges.Clear();
 
-        InitializeSpellCharges();
+        if (characterData != null)
+        {
+            foreach (var entry in characterData.characterSpells)
+            {
+                if (entry.spellData.resourceType == ResourceType.Charges)
+                {
+                    spellCharges[entry.spellData] = entry.spellData.maxCharges;
+                }
+            }
+        }
 
-        // Now it's safe to subscribe to events
-        if (GameBoard.Instance != null && GameBoard.Instance.Actions != null)
+        if (GameBoard.Instance?.Actions != null)
         {
             GameBoard.Instance.Actions.OnCellRevealed.AddListener(HandleCellRevealed);
             GameBoard.Instance.Actions.OnTrapExploded.AddListener(HandleTrapExploded);
         }
     }
 
-    private void InitializeSpellCharges()
-    {
-        spellCharges.Clear();
-        if (characterData == null) return;
-
-        foreach (var entry in characterData.characterSpells)
-        {
-            if (entry.spellData.resourceType == ResourceType.Charges)
-            {
-                spellCharges[entry.spellData] = entry.spellData.maxCharges;
-            }
-        }
-    }
-
     public void TryCastActiveSpell()
     {
-        if (characterData == null)
-        {
-            Debug.LogWarning("CharacterData not initialized for spell casting.");
-            return;
-        }
+        if (characterData == null) return;
 
         SpellData activeSpell = characterData.characterSpells
-                                            .FirstOrDefault(entry => entry.spellData.spellType == SpellType.Active)?.spellData;
+            .FirstOrDefault(entry => entry.spellData.spellType == SpellType.Active)?.spellData;
 
-        if (activeSpell == null)
-        {
-            Debug.Log($"No active spell configured for {characterData.characterName}.", this);
-            return;
-        }
-
-        if (!CanCastSpell(activeSpell))
-        {
-            Debug.Log($"Cannot cast {activeSpell.spellName} - requirements not met.", this);
-            return;
-        }
+        if (activeSpell == null) return;
+        if (!CanCastSpell(activeSpell)) return;
 
         ConsumeSpellCost(activeSpell);
         SpellExecutor.ExecuteSpell(activeSpell, characterBase);
@@ -118,15 +89,12 @@ public class CharacterSpellManager : MonoBehaviour
             case ResourceType.None:
                 return true;
             case ResourceType.MagicShards:
-                // Check CharacterManager for Magic Shards
                 if (characterBase.CharacterData.characterName == "Gale" && CharacterManager.Instance != null)
                 {
                     return CharacterManager.Instance.CurrentMagicShardCount >= spell.resourceCost;
                 }
-                Debug.LogWarning($"Resource type {spell.resourceType} not handled globally for {spell.spellName}.");
                 return false;
             case ResourceType.Mana:
-                Debug.LogWarning($"Mana resource type not implemented yet for {spell.spellName}.");
                 return false;
             case ResourceType.Charges:
                 if (spellCharges.TryGetValue(spell, out int currentCharges))
@@ -144,7 +112,6 @@ public class CharacterSpellManager : MonoBehaviour
         switch (spell.resourceType)
         {
             case ResourceType.MagicShards:
-                // Consume Magic Shards via CharacterManager
                 if (characterBase.CharacterData.characterName == "Gale" && CharacterManager.Instance != null)
                 {
                     CharacterManager.Instance.SpendMagicShards(spell.resourceCost);
@@ -168,8 +135,9 @@ public class CharacterSpellManager : MonoBehaviour
     {
         if (characterData == null) return false;
 
-        SpellData mysticShield = characterData.characterSpells
-                                             .FirstOrDefault(entry => entry.spellData.spellName == spellName)?.spellData;
+        SpellData spell = characterData.characterSpells
+            .FirstOrDefault(entry => entry.spellData.spellName == spellName)?.spellData;
+
         return false;
     }
 
@@ -177,35 +145,27 @@ public class CharacterSpellManager : MonoBehaviour
     {
         if (characterData == null) return;
 
-        SpellData spellToDecrement = characterData.characterSpells
-                                                 .FirstOrDefault(entry => entry.spellData.spellName == spellName)?.spellData;
+        SpellData spell = characterData.characterSpells
+            .FirstOrDefault(entry => entry.spellData.spellName == spellName)?.spellData;
 
-        if (spellToDecrement != null && spellCharges.ContainsKey(spellToDecrement))
+        if (spell != null && spellCharges.ContainsKey(spell))
         {
-            spellCharges[spellToDecrement] -= amount;
-            Debug.Log($"{spellToDecrement.spellName} charges decremented by {amount}. Remaining: {spellCharges[spellToDecrement]}");
-            if (spellCharges[spellToDecrement] <= 0)
+            spellCharges[spell] -= amount;
+            Debug.Log($"{spell.spellName} charges decremented by {amount}. Remaining: {spellCharges[spell]}");
+            if (spellCharges[spell] <= 0)
             {
-                Debug.Log($"{spellToDecrement.spellName} charges depleted.");
+                Debug.Log($"{spell.spellName} charges depleted.");
             }
         }
     }
 
-    // --- Event Handlers for Triggered Spells ---
-
     private void HandleCellRevealed(Cell cell)
     {
-        // Add null checks at the beginning
-        if (!isInitialized || characterBase == null || characterData == null)
-        {
-            Debug.LogWarning("CharacterSpellManager not properly initialized, skipping cell reveal handling");
-            return;
-        }
+        if (!isInitialized || characterBase == null || characterData == null) return;
 
         foreach (var entry in characterData.characterSpells)
         {
             SpellData spell = entry.spellData;
-
             if ((spell.spellType == SpellType.Passive || spell.spellType == SpellType.Triggered) && spell.triggers != null)
             {
                 foreach (SpellTriggerBase trigger in spell.triggers)
@@ -215,15 +175,11 @@ public class CharacterSpellManager : MonoBehaviour
                         Debug.Log($"Triggered spell {spell.spellName} via {trigger.description} on cell {cell.position}");
                         SpellExecutor.ExecuteSpell(spell, characterBase);
 
-                        // Gale's Trap Whisper - Add Magic Shards via CharacterManager
                         if (characterBase.CharacterData.characterName == "Gale" && spell.spellName == "Trap Whisper")
                         {
                             if (cell.type != Cell.CellType.Trap && UnityEngine.Random.value < 0.7f)
                             {
-                                if (CharacterManager.Instance != null)
-                                {
-                                    CharacterManager.Instance.AddMagicShardCount(1); // Add shard via CharacterManager
-                                }
+                                CharacterManager.Instance?.AddMagicShardCount(1);
                             }
                         }
                     }
@@ -234,12 +190,7 @@ public class CharacterSpellManager : MonoBehaviour
 
     private void HandleTrapExploded(Cell cell)
     {
-        // Add null checks at the beginning
-        if (!isInitialized || characterBase == null || characterData == null)
-        {
-            Debug.LogWarning("CharacterSpellManager not properly initialized, skipping trap explosion handling");
-            return;
-        }
+        if (!isInitialized || characterBase == null || characterData == null) return;
 
         foreach (var entry in characterData.characterSpells)
         {

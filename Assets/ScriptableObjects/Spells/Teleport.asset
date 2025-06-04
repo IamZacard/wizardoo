@@ -12,23 +12,28 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4a810a05cd3a7184bbf97184818465b3, type: 3}
   m_Name: Teleport
   m_EditorClassIdentifier: 
-  spellName: 
-  description: 
-  icon: {fileID: 0}
-  spellType: 0
+  spellName: Teleport
+  description: Teleport to selected cell
+  icon: {fileID: 21300000, guid: 7c954b09fa8641b4cb3316694693a83c, type: 3}
+  spellType: 1
   resourceType: 0
   resourceCost: 0
-  maxCharges: 1
+  maxCharges: 100
   consumesCharges: 0
-  targetType: 0
-  range: 1
+  targetType: 2
+  range: 20
   areaSize: 1
-  effects: []
+  effects:
+  - rid: 3186981812231208960
   triggers: []
   activeDuration: 0
-  visualEffect: {fileID: 0}
-  soundEffect: {fileID: 0}
+  visualEffect: {fileID: 5402626375564937643, guid: e3df400b0881b2f4ca1d6997342ca172, type: 3}
+  soundEffect: {fileID: 8300000, guid: 3058f79ea51ab0f42a026f4c33b7b40d, type: 3}
   effectColor: {r: 1, g: 1, b: 1, a: 1}
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 3186981812231208960
+      type: {class: TeleportEffect, ns: , asm: Assembly-CSharp}
+      data:
+        effectDescription: Teleports the character to the target cell.

@@ -1,8 +1,8 @@
-// GameUIManager.cs
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using TMPro;
 using DG.Tweening;
+using Cinemachine;
 
 public class GameUIManager : MonoBehaviour
 {
@@ -15,6 +15,12 @@ public class GameUIManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI timerText;
     [SerializeField] private TextMeshProUGUI flagCountText;
 
+    [Header("Camera Settings")]
+    [SerializeField] private CinemachineVirtualCamera virtualCamera;
+    private float baseOrthoSize;
+    private float zoomedOrthoSize;
+    [SerializeField] private float zoomDuration = 1f;
+
     private GameBoard gameBoard;
     private bool isAnimating = false;
 
@@ -22,13 +28,21 @@ public class GameUIManager : MonoBehaviour
     {
         gameBoard = FindObjectOfType<GameBoard>();
         HideAllPanelsInstant();
+
+        if (virtualCamera == null)
+            virtualCamera = FindObjectOfType<CinemachineVirtualCamera>();
+
+        if (virtualCamera != null)
+        {
+            baseOrthoSize = virtualCamera.m_Lens.OrthographicSize;
+            zoomedOrthoSize = baseOrthoSize - 1f;
+        }
     }
 
     private void Update()
     {
         HandlePauseToggle();
 
-        // Only update UI when game is playing and pause panel is not active
         if (GameStateManager.Instance.CurrentState == GameState.Playing && !pausePanel.activeSelf)
         {
             UpdateGameplayUI();
@@ -45,14 +59,12 @@ public class GameUIManager : MonoBehaviour
 
     private void HandlePauseToggle()
     {
-        // Only handle P key when not animating and game state allows it
         if (Input.GetKeyDown(KeyCode.P) && !isAnimating)
         {
             GameState currentState = GameStateManager.Instance.CurrentState;
 
             if (currentState == GameState.Playing)
             {
-                // Check if board is currently flood filling - don't allow pause during flood fill
                 if (gameBoard != null && gameBoard.IsFloodFilling)
                 {
                     Debug.Log("Cannot pause during flood fill operation");
@@ -71,22 +83,40 @@ public class GameUIManager : MonoBehaviour
     private void OpenPauseMenu()
     {
         Debug.Log("Opening pause menu");
-        // First pause the game state
         GameStateManager.Instance.PauseGame();
-        // Then show the panel
         ShowPanel(pausePanel);
+
+        if (virtualCamera != null)
+        {
+            DOTween.To(
+                () => virtualCamera.m_Lens.OrthographicSize,
+                x => virtualCamera.m_Lens.OrthographicSize = x,
+                zoomedOrthoSize,
+                zoomDuration
+            )
+            .SetEase(Ease.InOutSine)
+            .SetUpdate(true);
+        }
     }
 
     private void ClosePauseMenu()
     {
         Debug.Log("Closing pause menu");
-        // First hide the panel
         HidePanel(pausePanel);
-        // Then resume the game state
         GameStateManager.Instance.ResumeGame();
+
+        if (virtualCamera != null)
+        {
+            DOTween.To(
+                () => virtualCamera.m_Lens.OrthographicSize,
+                x => virtualCamera.m_Lens.OrthographicSize = x,
+                baseOrthoSize,
+                zoomDuration
+            )
+            .SetEase(Ease.InOutSine)
+            .SetUpdate(true);
+        }
     }
-
-
 
     private void OnEnable()
     {
@@ -106,11 +136,9 @@ public class GameUIManager : MonoBehaviour
     {
         Debug.Log($"UI Manager: State changed from {previousState} to {newState}");
 
-        // Ensure UI state matches game state
         switch (newState)
         {
             case GameState.Playing:
-                // If we're resuming, make sure pause panel is hidden
                 if (previousState == GameState.Paused)
                 {
                     HidePanel(pausePanel);
@@ -118,12 +146,10 @@ public class GameUIManager : MonoBehaviour
                 break;
 
             case GameState.Paused:
-                // Pause panel should already be shown by OpenPauseMenu
                 break;
 
             case GameState.Won:
             case GameState.Lost:
-                // End game panels are handled by their respective event handlers
                 break;
         }
     }
@@ -142,12 +168,8 @@ public class GameUIManager : MonoBehaviour
 
     private void ShowEndGamePanel(GameObject panel)
     {
-        // Hide all other panels first
         HideAllPanelsInstant();
-
-        // Show the end game panel
         ShowPanel(panel);
-
         Debug.Log($"Showing end game panel: {panel.name}");
     }
 
@@ -169,7 +191,6 @@ public class GameUIManager : MonoBehaviour
         panel.SetActive(true);
         AnimateChildren(panel);
 
-        // Enable interaction on this panel
         var cg = panel.GetComponent<CanvasGroup>() ?? panel.AddComponent<CanvasGroup>();
         cg.interactable = true;
         cg.blocksRaycasts = true;
@@ -197,16 +218,14 @@ public class GameUIManager : MonoBehaviour
         isAnimating = true;
         var children = panel.GetComponentsInChildren<Transform>(true);
 
-        // Reset all children to scale 0
         foreach (var t in children)
         {
             if (t == panel.transform) continue;
             t.localScale = Vector3.zero;
         }
 
-        // Animate them in using unscaled time so it works even when game is paused
         var seq = DOTween.Sequence();
-        seq.SetUpdate(true); // This makes the sequence use unscaled time
+        seq.SetUpdate(true);
 
         foreach (var t in children)
         {
@@ -241,7 +260,6 @@ public class GameUIManager : MonoBehaviour
         flagCountText.text = $"Flags: {remainingFlags}";
     }
 
-    // Public methods for UI buttons
     public void OnResumeButtonClicked()
     {
         if (GameStateManager.Instance.CurrentState == GameState.Paused)
@@ -253,8 +271,7 @@ public class GameUIManager : MonoBehaviour
     public void OnRestartButtonClicked()
     {
         HideAllPanelsInstant();
-        GameStateManager.Instance.RestartGame(); // Relies on OnGameStarted event
-                                                 // Removed: gameBoard.StartNewGame() as it's handled by the event
+        GameStateManager.Instance.RestartGame();
     }
 
     public void OnMainMenuButtonClicked()

@@ -6,7 +6,7 @@ using System; // Required for [Serializable]
 public class CharacterSpellEntry
 {
     public SpellData spellData;
-    public KeyCode activationKey = KeyCode.Mouse0;
+    //public KeyCode activationKey = KeyCode.Mouse0;
 }
 
 [CreateAssetMenu(fileName = "New Character", menuName = "Arcane Delvers/Character Data")]

@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿// CharacterBase.cs
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -12,30 +13,20 @@ public class CharacterBase : MonoBehaviour
     [Header("UI")]
     public GameObject interactionPrompt;
 
-    // Character data
     public CharacterData CharacterData { get; private set; }
 
-    // Components
     private PlayerMovement controls;
     private CharacterSpellManager spellManager;
     private SpriteRenderer spriteRenderer;
     private Rigidbody2D rb;
 
-    // State management
     public CharacterState CurrentState { get; private set; } = CharacterState.Idle;
-
-    // For Ethereal Shield / Invulnerability (Mystic)
-    private int etherealShieldStepsRemaining = 0;
-
-    // Movement
-    private bool isMoving = false;
+    private int etherealShieldStepsRemaining;
+    private bool isMoving;
     private Vector2 lastMoveDirection;
-
-    // Property to get current grid position
-    public Vector3Int GridPosition => groundTileMap != null ? groundTileMap.WorldToCell(transform.position) : Vector3Int.zero;
-
-    // Interaction
     private List<IInteractable> nearbyInteractables = new List<IInteractable>();
+
+    public Vector3Int GridPosition => groundTileMap != null ? groundTileMap.WorldToCell(transform.position) : Vector3Int.zero;
 
     private void Awake()
     {
@@ -43,26 +34,15 @@ public class CharacterBase : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         spriteRenderer = GetComponent<SpriteRenderer>();
 
-        spellManager = GetComponent<CharacterSpellManager>(); // This is the line that might be failing
+        spellManager = GetComponent<CharacterSpellManager>();
         if (spellManager == null)
         {
-            Debug.LogError($"CharacterBase: GetComponent<CharacterSpellManager>() returned NULL for '{gameObject.name}' in Awake!", this); // DIAGNOSTIC 3: Report failure
-        }
-        else
-        {
-            Debug.Log($"CharacterBase: Successfully found CharacterSpellManager for '{gameObject.name}' in Awake.", this); // DIAGNOSTIC 3: Report success
+            Debug.LogError($"CharacterBase: CharacterSpellManager not found on '{gameObject.name}'", this);
         }
 
         if (groundTileMap == null)
         {
-            if (GameBoard.Instance != null && GameBoard.Instance.Renderer != null)
-            {
-                groundTileMap = GameBoard.Instance.Renderer.Tilemap;
-            }
-            else
-            {
-                groundTileMap = FindObjectOfType<Tilemap>();
-            }
+            groundTileMap = GameBoard.Instance?.Renderer.Tilemap ?? FindObjectOfType<Tilemap>();
         }
     }
 
@@ -70,7 +50,7 @@ public class CharacterBase : MonoBehaviour
     {
         controls.Enable();
         controls.Main.Flag.performed += HandleFlaggingInputPerformed;
-        controls.Main.AbilityUsage.performed += HandleAbilityUsageInputPerformed; 
+        controls.Main.AbilityUsage.performed += HandleAbilityUsageInputPerformed;
     }
 
     private void OnDisable()
@@ -82,7 +62,6 @@ public class CharacterBase : MonoBehaviour
 
     private void Start()
     {
-        // Subscribe to movement and interaction input events
         controls.Main.Movement.performed += ctx => HandleMovementInput(ctx.ReadValue<Vector2>());
         controls.Main.AbilityUsage.performed += ctx => HandleInteractionInput();
 
@@ -93,50 +72,50 @@ public class CharacterBase : MonoBehaviour
     public void Initialize(CharacterData data)
     {
         CharacterData = data;
-
         if (spriteRenderer != null && data.icon != null)
         {
             spriteRenderer.sprite = data.icon;
         }
 
-        // Initialize spell manager FIRST, before any other operations       
         if (spellManager != null)
         {
             spellManager.Initialize(data);
         }
 
         transform.position = SnapToGrid(transform.position);
-        GameBoard.Instance?.RevealCellsAroundPosition(GetGridPosition(), CharacterData.lightRadius);
+        GameBoard.Instance?.RevealCellsAroundPosition(GridPosition, CharacterData.lightRadius);
 
         SetState(CharacterState.Idle);
     }
 
     private void Update()
     {
-        // Handle interaction key input (still handled directly via Update for simplicity as it's a single key)
         if (CurrentState == CharacterState.Idle && Input.GetKeyDown(CharacterData.interactionKey))
         {
             HandleInteractionInput();
         }
-
         UpdateInteractionPrompt();
     }
 
-    // New method specifically for the input action's performed event
     private void HandleFlaggingInputPerformed(InputAction.CallbackContext context)
     {
         if (!GameStateManager.Instance.CanUseAbilities) return;
-
-        Debug.Log("Flag action performed via Input System!");
-        HandleFlaggingInput(); // Call your existing logic
+        HandleFlaggingInput();
     }
 
     private void HandleMovementInput(Vector2 inputDirection)
     {
-        if (!GameStateManager.Instance.CanMove || isMoving || (CurrentState != CharacterState.Idle && CurrentState != CharacterState.Moving))
+        if (!GameStateManager.Instance.CanMove ||
+            isMoving ||
+            (CurrentState != CharacterState.Idle && CurrentState != CharacterState.Moving) ||
+            (GameBoard.Instance?.IsFloodFilling ?? false))
             return;
 
-        Vector2 direction = NormalizeToSingleAxis(inputDirection);
+        Vector2 direction = Mathf.Abs(inputDirection.x) > Mathf.Abs(inputDirection.y)
+            ? new Vector2(Mathf.Sign(inputDirection.x), 0)
+            : Mathf.Abs(inputDirection.y) > 0
+                ? new Vector2(0, Mathf.Sign(inputDirection.y))
+                : Vector2.zero;
 
         if (direction != Vector2.zero && CanMove(direction))
         {
@@ -147,38 +126,15 @@ public class CharacterBase : MonoBehaviour
     private void HandleAbilityUsageInputPerformed(InputAction.CallbackContext context)
     {
         if (!GameStateManager.Instance.CanUseAbilities) return;
-
-        if (spellManager != null)
-        {
-            spellManager.TryCastActiveSpell();
-        }
-        else
-        {
-            Debug.LogWarning("CharacterSpellManager not found on character. Cannot cast spell.");
-        }
-    }
-
-    private Vector2 NormalizeToSingleAxis(Vector2 input)
-    {
-        if (Mathf.Abs(input.x) > Mathf.Abs(input.y))
-        {
-            return new Vector2(Mathf.Sign(input.x), 0);
-        }
-        else if (Mathf.Abs(input.y) > 0)
-        {
-            return new Vector2(0, Mathf.Sign(input.y));
-        }
-        return Vector2.zero;
+        spellManager?.TryCastActiveSpell();
     }
 
     private bool CanMove(Vector2 direction)
     {
         if (groundTileMap == null) return false;
-
         Vector3 targetWorldPos = transform.position + (Vector3)direction;
-        Vector3Int gridPosition = groundTileMap.WorldToCell(targetWorldPos);
-
-        return groundTileMap.HasTile(gridPosition);
+        Vector3Int gridPos = groundTileMap.WorldToCell(targetWorldPos);
+        return groundTileMap.HasTile(gridPos);
     }
 
     private IEnumerator MoveToPosition(Vector2 direction)
@@ -187,20 +143,26 @@ public class CharacterBase : MonoBehaviour
         isMoving = true;
         lastMoveDirection = direction;
 
-        Vector3 startPosition = transform.position;
-        Vector3 targetPosition = startPosition + (Vector3)direction;
-        targetPosition = SnapToGrid(targetPosition);
+        Vector3 startPos = transform.position;
+        Vector3 targetPos = SnapToGrid(startPos + (Vector3)direction);
 
-        if (direction.x > 0)
-            spriteRenderer.flipX = true;
-        else if (direction.x < 0)
-            spriteRenderer.flipX = false;
+        spriteRenderer.flipX = direction.x > 0;
 
-        yield return StartCoroutine(JumpToPosition(startPosition, targetPosition));
+        float jumpHeight = 0.4f;
+        float jumpDuration = 0.15f;
+        float elapsed = 0f;
 
-        transform.position = targetPosition;
+        while (elapsed < jumpDuration)
+        {
+            float t = elapsed / jumpDuration;
+            float height = jumpHeight * (4f * t * (1f - t));
+            transform.position = Vector3.Lerp(startPos, targetPos, t) + new Vector3(0, height, 0);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
 
-        GameBoard.Instance?.HandleCharacterStep(GetGridPosition());
+        transform.position = targetPos;
+        GameBoard.Instance?.HandleCharacterStep(GridPosition);
 
         isMoving = false;
         if (CurrentState == CharacterState.Moving)
@@ -209,78 +171,29 @@ public class CharacterBase : MonoBehaviour
         }
     }
 
-    private IEnumerator JumpToPosition(Vector3 start, Vector3 target)
-    {
-        float jumpHeight = 0.4f;
-        float jumpDuration = 0.15f;
-
-        float elapsed = 0f;
-
-        while (elapsed < jumpDuration)
-        {
-            float t = elapsed / jumpDuration;
-
-            float height = jumpHeight * (4f * t * (1f - t));
-            Vector3 currentPos = Vector3.Lerp(start, target, t);
-            currentPos.y += height;
-
-            transform.position = currentPos;
-
-            elapsed += Time.deltaTime;
-            yield return null;
-        }
-
-        transform.position = target;
-    }
-
-    private Vector3 SnapToGrid(Vector3 position)
-    {
-        return new Vector3(
-            Mathf.Floor(position.x) + 0.5f,
-            Mathf.Floor(position.y) + 0.5f,
-            position.z
-        );
-    }
+    private Vector3 SnapToGrid(Vector3 position) =>
+        new Vector3(Mathf.Floor(position.x) + 0.5f, Mathf.Floor(position.y) + 0.5f, position.z);
 
     private void HandleFlaggingInput()
     {
         if (CurrentState != CharacterState.Idle && CurrentState != CharacterState.Moving) return;
 
-        Vector3 mouseScreenPos = Input.mousePosition;
+        Camera mainCamera = Camera.main ?? FindObjectOfType<Camera>();
+        if (mainCamera == null) return;
 
-        Camera mainCamera = Camera.main;
-        if (mainCamera == null)
-        {
-            mainCamera = FindObjectOfType<Camera>();
-        }
-
-        if (mainCamera == null)
-        {
-            Debug.LogError("No camera found for mouse world position conversion!");
-            return;
-        }
-
-        Vector3 mouseWorldPos = mainCamera.ScreenToWorldPoint(mouseScreenPos);
+        Vector3 mouseWorldPos = mainCamera.ScreenToWorldPoint(Input.mousePosition);
         mouseWorldPos.z = 0;
-
         Vector3Int cellPos = groundTileMap.WorldToCell(mouseWorldPos);
-
-        Debug.Log($"Mouse Screen: {mouseScreenPos}, World: {mouseWorldPos}, Cell: {cellPos}");
 
         if (GameBoard.Instance != null && groundTileMap.HasTile(cellPos))
         {
             GameBoard.Instance.HandleCellFlag(cellPos, CharacterData.flagEffect);
-        }
-        else
-        {
-            Debug.LogWarning($"Cannot flag cell at {cellPos} - GameBoard: {GameBoard.Instance != null}, HasTile: {groundTileMap?.HasTile(cellPos)}");
         }
     }
 
     private void HandleInteractionInput()
     {
         if (CurrentState != CharacterState.Idle && CurrentState != CharacterState.Moving) return;
-
         if (nearbyInteractables.Count > 0)
         {
             StartCoroutine(InteractWithNearest());
@@ -292,9 +205,7 @@ public class CharacterBase : MonoBehaviour
         if (nearbyInteractables.Count == 0) yield break;
 
         SetState(CharacterState.Interacting);
-
         IInteractable interactable = nearbyInteractables[0];
-
         interactable.StartInteraction(this);
 
         if (CharacterData.interactionDuration > 0)
@@ -304,13 +215,10 @@ public class CharacterBase : MonoBehaviour
         else
         {
             while (CurrentState == CharacterState.Interacting)
-            {
                 yield return null;
-            }
         }
 
         interactable.EndInteraction(this);
-
         if (CurrentState == CharacterState.Interacting)
         {
             SetState(CharacterState.Idle);
@@ -320,11 +228,7 @@ public class CharacterBase : MonoBehaviour
     private void UpdateInteractionPrompt()
     {
         bool shouldShow = CurrentState == CharacterState.Idle && nearbyInteractables.Count > 0;
-
-        if (interactionPrompt != null)
-        {
-            interactionPrompt.SetActive(shouldShow);
-        }
+        interactionPrompt?.SetActive(shouldShow);
     }
 
     private void SetState(CharacterState newState)
@@ -342,36 +246,27 @@ public class CharacterBase : MonoBehaviour
         if (steps > 0)
         {
             SetState(CharacterState.Invulnerable);
-            Debug.Log($"{CharacterData.characterName} is now invulnerable for {steps} steps.");
         }
-        else
+        else if (CurrentState == CharacterState.Invulnerable)
         {
-            if (CurrentState == CharacterState.Invulnerable)
-            {
-                SetState(CharacterState.Idle);
-            }
+            SetState(CharacterState.Idle);
         }
     }
 
-    // NEW: Method to decrement invulnerability steps
     public void DecrementEtherealShieldSteps()
     {
         if (etherealShieldStepsRemaining > 0)
         {
             etherealShieldStepsRemaining--;
-            Debug.Log($"{CharacterData.characterName} Ethereal Shield steps remaining: {etherealShieldStepsRemaining}");
         }
     }
 
-    public bool IsInvulnerable()
-    {
-        return etherealShieldStepsRemaining > 0;
-    }
+    public bool IsInvulnerable() => etherealShieldStepsRemaining > 0;
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        var interactable = other.GetComponent<IInteractable>();
-        if (interactable != null && !nearbyInteractables.Contains(interactable))
+        if (other.GetComponent<IInteractable>() is IInteractable interactable &&
+            !nearbyInteractables.Contains(interactable))
         {
             nearbyInteractables.Add(interactable);
         }
@@ -379,56 +274,24 @@ public class CharacterBase : MonoBehaviour
 
     private void OnTriggerExit2D(Collider2D other)
     {
-        var interactable = other.GetComponent<IInteractable>();
-        if (interactable != null)
+        if (other.GetComponent<IInteractable>() is IInteractable interactable)
         {
             nearbyInteractables.Remove(interactable);
         }
     }
 
-    /*public void MoveCharacterTo(Vector3Int targetGridPosition)
-    {
-        if (groundTileMap == null)
-        {
-            Debug.LogError("CharacterBase: groundTileMap is not assigned! Cannot move character.");
-            return;
-        }
-
-        Vector3 worldPosition = groundTileMap.CellToWorld(targetGridPosition) + new Vector3(0.5f, 0.5f, 0);
-
-        transform.position = worldPosition;
-
-        Debug.Log($"Character moved to grid position: {targetGridPosition} (World: {worldPosition})");
-    }*/
-
     public void MoveCharacterTo(Vector3Int targetGridPosition)
     {
-        if (groundTileMap == null)
-        {
-            Debug.LogError("CharacterBase: groundTileMap is not assigned! Cannot move character.");
-            return;
-        }
-
+        if (groundTileMap == null) return;
         Vector3 worldPosition = groundTileMap.CellToWorld(targetGridPosition) + new Vector3(0.5f, 0.5f, 0);
         transform.position = worldPosition;
-
-        GameBoard.Instance?.HandleCharacterStep(GetGridPosition());
-
-        Debug.Log($"Character teleported to grid position: {targetGridPosition} (World: {worldPosition})");
+        GameBoard.Instance?.HandleCharacterStep(GridPosition);
     }
 
-    public void ForceSetState(CharacterState state)
-    {
-        SetState(state);
-    }
+    public void ForceSetState(CharacterState state) => SetState(state);
 
-    public bool IsInState(CharacterState state)
-    {
-        return CurrentState == state;
-    }
+    public bool IsInState(CharacterState state) => CurrentState == state;
 
-    public Vector3Int GetGridPosition()
-    {
-        return groundTileMap != null ? groundTileMap.WorldToCell(transform.position) : Vector3Int.zero;
-    }
+    public Vector3Int GetGridPosition() =>
+        groundTileMap != null ? groundTileMap.WorldToCell(transform.position) : Vector3Int.zero;
 }
