@@ -12,8 +12,6 @@ GameObject:
   - component: {fileID: 4083935714374774174}
   - component: {fileID: 8766650062611814656}
   - component: {fileID: 4093469946569933604}
-  - component: {fileID: 3175373820212215009}
-  - component: {fileID: 6617162885084911743}
   - component: {fileID: 2282829195573723668}
   m_Layer: 7
   m_Name: Gale_Revamp
@@ -162,45 +160,6 @@ BoxCollider2D:
   serializedVersion: 2
   m_Size: {x: 0.7, y: 0.7}
   m_EdgeRadius: 0
---- !u!95 &3175373820212215009
-Animator:
-  serializedVersion: 5
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4670117459594021562}
-  m_Enabled: 1
-  m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 9100000, guid: 10ff1a613a8d2d34bb78239afc5edb55, type: 2}
-  m_CullingMode: 0
-  m_UpdateMode: 0
-  m_ApplyRootMotion: 0
-  m_LinearVelocityBlending: 0
-  m_StabilizeFeet: 0
-  m_WarningMessage: 
-  m_HasTransformHierarchy: 1
-  m_AllowConstantClipSamplingOptimization: 1
-  m_KeepAnimatorStateOnDisable: 0
-  m_WriteDefaultValuesOnDisable: 0
---- !u!114 &6617162885084911743
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4670117459594021562}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7c46239bd122b124b8a978ed17b5094a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  stats: {fileID: 11400000, guid: 41e060da4c5a2fd4a962c4d9efadcddb, type: 2}
-  isActive: 0
-  _characterModelScaleNumber: 1.2
-  groundTileMap: {fileID: 0}
-  roomTileMap: {fileID: 0}
-  colissionTileMap: {fileID: 0}
 --- !u!114 &2282829195573723668
 MonoBehaviour:
   m_ObjectHideFlags: 0

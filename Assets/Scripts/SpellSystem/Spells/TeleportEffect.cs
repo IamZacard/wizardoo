@@ -18,7 +18,7 @@ public class TeleportEffect : SpellEffectBase
 
         if (targetCell != null)
         {
-            caster.MoveCharacterTo(targetCell.position); // Uses CharacterBase's method to move to grid position
+            caster.MoveCharacterTo(targetCell.position);            
             Debug.Log($"Teleported {caster.CharacterData.characterName} to {targetCell.position}.");
         }
         else

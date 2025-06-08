@@ -79,7 +79,7 @@ SpriteRenderer:
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 2
+  m_SortingOrder: 1
   m_Sprite: {fileID: 686781090, guid: 5ba68ac054c190347b32b9b3e9d521b9, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
@@ -248,9 +248,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   groundTileMap: {fileID: 0}
   interactionPrompt: {fileID: 8321004370904795213, guid: b07a9a27572b6e14d9743b97e42e1688, type: 3}
-  jiggleXOffset: 0.05
-  jiggleYOffset: 0.035
-  jiggleDurationPerStep: 0.5
 --- !u!114 &5899333996989107115
 MonoBehaviour:
   m_ObjectHideFlags: 0

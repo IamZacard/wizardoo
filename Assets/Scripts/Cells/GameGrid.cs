@@ -240,7 +240,7 @@ public class GameGrid
             current.revealed = true;
             cellsRevealed++;
 
-            Debug.Log($"Revealed cell at {current.position} - Type: {current.type}, Number: {current.number}", null);
+            Debug.Log($"Revealed cell at {current.position} - Type: {current.type}, Number: {current.number}");
 
             if (current.type == Cell.CellType.Empty)
             {

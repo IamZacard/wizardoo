@@ -16,6 +16,7 @@ GameObject:
   - component: {fileID: -3502475865457260502}
   - component: {fileID: 5186803387774398532}
   - component: {fileID: 7074252442713415079}
+  - component: {fileID: -1002293459976272807}
   m_Layer: 7
   m_Name: Wizard_Myst
   m_TagString: Player
@@ -258,6 +259,18 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4f7b9450d8ef3fb44815acdffc71d93d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &-1002293459976272807
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4670117459594021562}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ea323ed15f380f4f84284f8a5f00513, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!1 &4858516540831861618

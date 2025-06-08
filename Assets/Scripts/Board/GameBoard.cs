@@ -12,7 +12,7 @@ public class GameActions
 
     public UnityEngine.Events.UnityEvent<Cell> OnCellRevealed;
     public UnityEngine.Events.UnityEvent<Cell> OnCellFlagged;
-    public UnityEngine.Events.UnityEvent<Cell> OnCellUnflagged;
+    public UnityEngine.Events.UnityEvent<Cell> OnCellUnflagged;    
 
     public UnityEngine.Events.UnityEvent OnGameWon;
     public UnityEngine.Events.UnityEvent OnGameLost;
@@ -68,11 +68,15 @@ public class GameBoard : MonoBehaviour
     private bool isInitialized;
     private bool isFloodFilling;
 
+    // Add a reference to the active character
+    private CharacterBase activeCharacter;
     public GameGrid Grid => gameGrid;
     public BoardRenderer Renderer => boardRenderer;
     public bool IsInitialized => isInitialized;
     public bool IsFloodFilling => isFloodFilling;
     public GameActions Actions => gameActions;
+
+    public UnityEngine.Events.UnityEvent<CharacterBase> OnCharacterStepEvent = new UnityEngine.Events.UnityEvent<CharacterBase>();
 
     #region Unity Lifecycle
     private void Awake()
@@ -108,6 +112,12 @@ public class GameBoard : MonoBehaviour
         GameStateManager.OnStateChanged -= HandleStateChanged;
     }
 
+    private void OnDestroy()
+    {
+        GameStateManager.OnGameStarted -= HandleGameStarted;
+        GameStateManager.OnStateChanged -= HandleStateChanged;
+    }
+
     private void Start()
     {
         InitializeBoard();
@@ -117,6 +127,8 @@ public class GameBoard : MonoBehaviour
     #region Core Methods
     public void HandleCharacterStep(Vector3Int characterGridPosition)
     {
+        activeCharacter = CharacterManager.Instance?.ActiveCharacter;
+
         if (!ValidateInteraction()) return;
 
         Cell cell = gameGrid.GetCell(characterGridPosition.x, characterGridPosition.y);
@@ -128,14 +140,29 @@ public class GameBoard : MonoBehaviour
             cell = gameGrid.GetCell(characterGridPosition.x, characterGridPosition.y);
         }
 
+        // Check invulnerability BEFORE decrementing the counter
+        IDefensiveAbility defensiveAbility = activeCharacter as IDefensiveAbility;
+        bool isCharacterInvulnerable = defensiveAbility?.IsInvulnerable() ?? false;
+
         if (cell.type == Cell.CellType.Trap)
         {
-            ExecuteTrapStepAction(cell);
+            if (activeCharacter != null && isCharacterInvulnerable)
+            {
+                Debug.Log($"{activeCharacter.CharacterData.characterName} stepped on a trap while invulnerable. Game Over averted!");
+                defensiveAbility?.OnDefenseTriggered();
+                ExecuteFlagToggleAction(cell, activeCharacter.CharacterData.flagEffect);
+            }
+            else
+            {
+                ExecuteTrapStepAction(cell);
+            }
         }
         else if (!cell.revealed)
         {
             RevealCellLogic(cell);
         }
+
+        OnCharacterStepEvent?.Invoke(activeCharacter);
     }
 
     public void HandleCellFlag(Vector3Int cellPosition, GameObject flagEffectPrefab = null)
@@ -425,6 +452,7 @@ public class GameBoard : MonoBehaviour
 
         var allCells = gameGrid.GetAllCells();
         int totalTraps = 0, flaggedTraps = 0, unrevealedNonTraps = 0;
+        List<Cell> unrevealedNonTrapCells = new List<Cell>(); // Collect cells to reveal
 
         foreach (Cell cell in allCells)
         {
@@ -436,15 +464,28 @@ public class GameBoard : MonoBehaviour
             else if (!cell.revealed && !cell.IsProtected)
             {
                 unrevealedNonTraps++;
+                unrevealedNonTrapCells.Add(cell); // Add to the list
             }
         }
 
-        bool allTrapsFlagged = totalTraps > 0 && flaggedTraps == totalTraps;
+        bool allTrapsFlaggedCorrectly = totalTraps > 0 && flaggedTraps == totalTraps;
         bool allNonTrapsRevealed = unrevealedNonTraps == 0;
 
-        if (allTrapsFlagged || allNonTrapsRevealed)
+        if (allTrapsFlaggedCorrectly || allNonTrapsRevealed)
         {
-            AutoFlagRemainingTraps();
+            // If all traps are correctly flagged, reveal all other unrevealed cells
+            if (allTrapsFlaggedCorrectly && unrevealedNonTraps > 0)
+            {
+                foreach (Cell cell in unrevealedNonTrapCells)
+                {
+                    cell.revealed = true;
+                    gameActions.OnCellRevealed?.Invoke(cell);
+                }
+            }
+
+            AutoFlagRemainingTraps(); // This will handle any unflagged traps if all non-traps are revealed
+            boardRenderer.DrawGrid(); // Redraw the grid to show newly revealed cells and auto-flagged traps
+
             gameActions.OnGameWon?.Invoke();
             GameStateManager.Instance?.WinGame();
             return true;

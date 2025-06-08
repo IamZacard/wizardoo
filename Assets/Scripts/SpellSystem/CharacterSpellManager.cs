@@ -9,9 +9,10 @@ public class CharacterSpellManager : MonoBehaviour
     private CharacterBase characterBase;
     private CharacterData characterData;
     private Dictionary<SpellData, int> spellCharges = new Dictionary<SpellData, int>();
+    private Dictionary<string, SpellData> spellCache = new Dictionary<string, SpellData>();
     private bool isInitialized;
 
-    public static event Action<string, int, int> OnSpellChargesUpdated;
+    //public static event Action<string, int, int> OnSpellChargesUpdated;
     public static event Action<SpellData, CharacterBase> OnSpellCastAttempted;
     public static event Action<SpellData, CharacterBase> OnSpellCastSuccess;
     public static event Action<SpellData, CharacterBase, string> OnSpellCastFailed;
@@ -35,6 +36,7 @@ public class CharacterSpellManager : MonoBehaviour
         }
     }
 
+    // In CharacterSpellManager.cs - OnDisable should match OnEnable
     private void OnDisable()
     {
         if (GameBoard.Instance?.Actions != null)
@@ -42,6 +44,12 @@ public class CharacterSpellManager : MonoBehaviour
             GameBoard.Instance.Actions.OnCellRevealed.RemoveListener(HandleCellRevealed);
             GameBoard.Instance.Actions.OnTrapExploded.RemoveListener(HandleTrapExploded);
         }
+
+        // Add this cleanup for static events
+        //OnSpellChargesUpdated = null;
+        OnSpellCastAttempted = null;
+        OnSpellCastSuccess = null;
+        OnSpellCastFailed = null;
     }
 
     public void Initialize(CharacterData data)
@@ -65,6 +73,12 @@ public class CharacterSpellManager : MonoBehaviour
         {
             GameBoard.Instance.Actions.OnCellRevealed.AddListener(HandleCellRevealed);
             GameBoard.Instance.Actions.OnTrapExploded.AddListener(HandleTrapExploded);
+        }
+
+        spellCache.Clear();
+        foreach (var entry in characterData.characterSpells)
+        {
+            spellCache[entry.spellData.spellName] = entry.spellData;
         }
     }
 
@@ -145,10 +159,11 @@ public class CharacterSpellManager : MonoBehaviour
     {
         if (characterData == null) return;
 
-        SpellData spell = characterData.characterSpells
-            .FirstOrDefault(entry => entry.spellData.spellName == spellName)?.spellData;
+        //SpellData spell = characterData.characterSpells
+        //    .FirstOrDefault(entry => entry.spellData.spellName == spellName)?.spellData;
 
-        if (spell != null && spellCharges.ContainsKey(spell))
+        if (spellCache.TryGetValue(spellName, out SpellData spell) &&
+       spellCharges.ContainsKey(spell))
         {
             spellCharges[spell] -= amount;
             Debug.Log($"{spell.spellName} charges decremented by {amount}. Remaining: {spellCharges[spell]}");
@@ -208,4 +223,20 @@ public class CharacterSpellManager : MonoBehaviour
             }
         }
     }
+
+    public static void RaiseSpellCastAttempted(SpellData spell, CharacterBase caster)
+    {
+        OnSpellCastAttempted?.Invoke(spell, caster);
+    }
+
+    public static void RaiseSpellCastSuccess(SpellData spell, CharacterBase caster)
+    {
+        OnSpellCastSuccess?.Invoke(spell, caster);
+    }
+
+    public static void RaiseSpellCastFailed(SpellData spell, CharacterBase caster, string reason)
+    {
+        OnSpellCastFailed?.Invoke(spell, caster, reason);
+    }
+
 }

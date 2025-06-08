@@ -1,17 +1,34 @@
 ﻿// CharacterBase.cs
+using DG.Tweening;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Tilemaps;
 
-public class CharacterBase : MonoBehaviour
+public class CharacterBase : MonoBehaviour, IDefensiveAbility
 {
+    [Header("Character Modules")]
+    private CharacterModule[] characterModules;
+    private IDefensiveAbility[] defensiveModules;
+
     [Header("Tilemap References")]
     public Tilemap groundTileMap;
 
     [Header("UI")]
     public GameObject interactionPrompt;
+
+    [Header("Fading Feature")]
+    private float timeOnNumberCell = 0f;
+    private bool isOnNumberCell = false;
+    private const float numberCellFadeDelay = 2f;
+    private const float lowAlpha = 0.1f;
+    private const float fullAlpha = 1f;
+    private const float pulseDuration = 1.5f;
+    private const float fadeDuration = 0.25f;
+    private bool isPulsing = false;
+    private Coroutine pulseCoroutine;
 
     public CharacterData CharacterData { get; private set; }
 
@@ -21,7 +38,6 @@ public class CharacterBase : MonoBehaviour
     private Rigidbody2D rb;
 
     public CharacterState CurrentState { get; private set; } = CharacterState.Idle;
-    private int etherealShieldStepsRemaining;
     private bool isMoving;
     private Vector2 lastMoveDirection;
     private List<IInteractable> nearbyInteractables = new List<IInteractable>();
@@ -44,6 +60,15 @@ public class CharacterBase : MonoBehaviour
         {
             groundTileMap = GameBoard.Instance?.Renderer.Tilemap ?? FindObjectOfType<Tilemap>();
         }
+
+        characterModules = GetComponents<CharacterModule>();
+        if (characterModules.Length == 0)
+        {
+            Debug.LogWarning($"CharacterBase: No CharacterModule components found on '{gameObject.name}'.", this);
+        }
+
+        characterModules = GetComponents<CharacterModule>();
+        defensiveModules = characterModules.OfType<IDefensiveAbility>().ToArray();
     }
 
     private void OnEnable()
@@ -82,6 +107,11 @@ public class CharacterBase : MonoBehaviour
             spellManager.Initialize(data);
         }
 
+        foreach (var module in characterModules)
+        {
+            module.Initialize(this);
+        }
+
         transform.position = SnapToGrid(transform.position);
         GameBoard.Instance?.RevealCellsAroundPosition(GridPosition, CharacterData.lightRadius);
 
@@ -90,10 +120,15 @@ public class CharacterBase : MonoBehaviour
 
     private void Update()
     {
+        if (CharacterData == null) return;
+
         if (CurrentState == CharacterState.Idle && Input.GetKeyDown(CharacterData.interactionKey))
         {
             HandleInteractionInput();
         }
+
+        UpdateFadeOnNumberCell();
+
         UpdateInteractionPrompt();
     }
 
@@ -107,7 +142,9 @@ public class CharacterBase : MonoBehaviour
     {
         if (!GameStateManager.Instance.CanMove ||
             isMoving ||
-            (CurrentState != CharacterState.Idle && CurrentState != CharacterState.Moving) ||
+            (CurrentState != CharacterState.Idle &&
+             CurrentState != CharacterState.Moving &&
+             CurrentState != CharacterState.Invulnerable) || // Allow movement while invulnerable
             (GameBoard.Instance?.IsFloodFilling ?? false))
             return;
 
@@ -162,6 +199,14 @@ public class CharacterBase : MonoBehaviour
         }
 
         transform.position = targetPos;
+
+        // Reset fade timer on any step - now safe from interrupting movement
+        timeOnNumberCell = 0f;
+        if (isPulsing)
+        {
+            StopPulsing(); // Use safe method instead of StopAllCoroutines
+        }
+
         GameBoard.Instance?.HandleCharacterStep(GridPosition);
 
         isMoving = false;
@@ -240,28 +285,102 @@ public class CharacterBase : MonoBehaviour
         }
     }
 
-    public void SetEtherealShieldSteps(int steps)
+    #region Fading Feature
+    private void UpdateFadeOnNumberCell()
     {
-        etherealShieldStepsRemaining = steps;
-        if (steps > 0)
+        if (GameBoard.Instance?.Grid == null) return;
+
+        var cell = GameBoard.Instance.Grid.GetCell(GridPosition.x, GridPosition.y);
+        if (cell != null && cell.revealed && cell.type == Cell.CellType.Number)
         {
-            SetState(CharacterState.Invulnerable);
+            if (!isOnNumberCell)
+            {
+                isOnNumberCell = true;
+                timeOnNumberCell = 0f;
+            }
+
+            timeOnNumberCell += Time.deltaTime;
+
+            if (timeOnNumberCell >= numberCellFadeDelay && !isPulsing)
+            {
+                pulseCoroutine = StartCoroutine(PulseAlpha());
+            }
         }
-        else if (CurrentState == CharacterState.Invulnerable)
+        else
         {
-            SetState(CharacterState.Idle);
+            if (isOnNumberCell)
+            {
+                isOnNumberCell = false;
+                timeOnNumberCell = 0f;
+                StopPulsing(); // Use specific method instead of StopAllCoroutines
+            }
         }
     }
 
-    public void DecrementEtherealShieldSteps()
+    private IEnumerator PulseAlpha()
     {
-        if (etherealShieldStepsRemaining > 0)
+        isPulsing = true;
+
+        while (isOnNumberCell && isPulsing) // Check isPulsing flag
         {
-            etherealShieldStepsRemaining--;
+            // Fade to low alpha
+            FadeCharacter(lowAlpha);
+            yield return new WaitForSeconds(pulseDuration);
+
+            if (!isOnNumberCell || !isPulsing) break;
+
+            // Fade to full alpha
+            FadeCharacter(fullAlpha);
+            yield return new WaitForSeconds(pulseDuration);
+        }
+
+        isPulsing = false;
+        pulseCoroutine = null;
+    }
+
+    // New method to safely stop pulsing
+    private void StopPulsing()
+    {
+        if (pulseCoroutine != null)
+        {
+            StopCoroutine(pulseCoroutine);
+            pulseCoroutine = null;
+        }
+        isPulsing = false;
+        FadeCharacter(fullAlpha);
+    }
+
+    public void FadeCharacter(float targetAlpha, float duration = fadeDuration)
+    {
+        if (spriteRenderer != null)
+        {
+            spriteRenderer.DOFade(targetAlpha, duration);
         }
     }
 
-    public bool IsInvulnerable() => etherealShieldStepsRemaining > 0;
+    #endregion
+
+    public bool IsInvulnerable()
+    {
+        foreach (var module in defensiveModules)
+        {
+            if (module.IsInvulnerable()) return true;
+        }
+        return false;
+    }
+
+    public void OnDefenseTriggered()
+    {
+        foreach (var module in defensiveModules)
+        {
+            module.OnDefenseTriggered();
+        }
+    }
+
+    public T GetModule<T>() where T : CharacterModule
+    {
+        return characterModules?.OfType<T>().FirstOrDefault();
+    }
 
     private void OnTriggerEnter2D(Collider2D other)
     {

@@ -3,6 +3,7 @@ using UnityEngine.SceneManagement;
 using TMPro;
 using DG.Tweening;
 using Cinemachine;
+using System.Collections; // Required for Coroutines
 
 public class GameUIManager : MonoBehaviour
 {
@@ -20,6 +21,14 @@ public class GameUIManager : MonoBehaviour
     private float baseOrthoSize;
     private float zoomedOrthoSize;
     [SerializeField] private float zoomDuration = 1f;
+
+    [Header("Win Effects")]
+    [Tooltip("The Particle System Prefab to instantiate for the salute effect.")]
+    [SerializeField] private GameObject saluteParticlePrefab;
+    [Tooltip("The TextMeshProUGUI element in the WinPanel to position particles around.")]
+    [SerializeField] private TextMeshProUGUI winPanelText; // Assign your "You Win!" text here
+    [SerializeField] private float particleOffsetFromTextX = 150f; // Adjust based on your UI scale
+    [SerializeField] private float particleOffsetY = 0f; // Adjust for vertical positioning
 
     private GameBoard gameBoard;
     private bool isAnimating = false;
@@ -132,6 +141,13 @@ public class GameUIManager : MonoBehaviour
         GameStateManager.OnStateChanged -= HandleStateChanged;
     }
 
+    private void OnDestroy()
+    {
+        GameStateManager.OnGameWon -= HandleGameWon;
+        GameStateManager.OnGameLost -= HandleGameLost;
+        GameStateManager.OnStateChanged -= HandleStateChanged;
+    }
+
     private void HandleStateChanged(GameState previousState, GameState newState)
     {
         Debug.Log($"UI Manager: State changed from {previousState} to {newState}");
@@ -150,6 +166,7 @@ public class GameUIManager : MonoBehaviour
 
             case GameState.Won:
             case GameState.Lost:
+                // Panels are shown via ShowEndGamePanel, no need to hide here
                 break;
         }
     }
@@ -158,6 +175,7 @@ public class GameUIManager : MonoBehaviour
     {
         Debug.Log($"Game won in {gameTime:F1} seconds");
         ShowEndGamePanel(winPanel);
+        TriggerWinParticles(); // New method to call particle effects!
     }
 
     private void HandleGameLost()
@@ -259,6 +277,68 @@ public class GameUIManager : MonoBehaviour
         int remainingFlags = totalTraps - usedFlags;
         flagCountText.text = $"Flags: {remainingFlags}";
     }
+
+    private void TriggerWinParticles()
+    {
+        if (saluteParticlePrefab == null || winPanelText == null)
+        {
+            Debug.LogWarning("Salute particle prefab or WinPanel text is not assigned.");
+            return;
+        }
+
+        if (!winPanel.activeInHierarchy)
+        {
+            Debug.LogWarning("WinPanel is not active. Cannot position particles.");
+            return;
+        }
+
+        Canvas canvas = winPanel.GetComponentInParent<Canvas>();
+        if (canvas == null)
+        {
+            Debug.LogWarning("Canvas not found. Cannot convert UI to world space.");
+            return;
+        }
+
+        RectTransform textRect = winPanelText.rectTransform;
+        Vector3 textCenter = textRect.position;
+
+        // Compute left/right screen positions relative to text
+        Vector3 leftScreenPos = textCenter - new Vector3(winPanelText.preferredWidth / 2f + particleOffsetFromTextX, particleOffsetY, 0);
+        Vector3 rightScreenPos = textCenter + new Vector3(winPanelText.preferredWidth / 2f + particleOffsetFromTextX, particleOffsetY, 0);
+
+        // Convert screen positions to world space
+        Vector3 leftWorldPos, rightWorldPos;
+
+        if (canvas.renderMode == RenderMode.ScreenSpaceOverlay)
+        {
+            // Camera is not needed
+            leftWorldPos = Camera.main.ScreenToWorldPoint(new Vector3(leftScreenPos.x, leftScreenPos.y, 10f));
+            rightWorldPos = Camera.main.ScreenToWorldPoint(new Vector3(rightScreenPos.x, rightScreenPos.y, 10f));
+        }
+        else
+        {
+            // Use camera-based raycasting
+            RectTransformUtility.ScreenPointToWorldPointInRectangle(textRect, leftScreenPos, Camera.main, out leftWorldPos);
+            RectTransformUtility.ScreenPointToWorldPointInRectangle(textRect, rightScreenPos, Camera.main, out rightWorldPos);
+        }
+
+        // Instantiate and play left particle system
+        GameObject leftParticles = Instantiate(saluteParticlePrefab, leftWorldPos, Quaternion.identity);
+        if (leftParticles.TryGetComponent<ParticleSystem>(out ParticleSystem leftPs))
+        {
+            leftPs.Play();
+            Destroy(leftParticles, leftPs.main.duration);
+        }
+
+        // Instantiate and play right particle system
+        GameObject rightParticles = Instantiate(saluteParticlePrefab, rightWorldPos, Quaternion.identity);
+        if (rightParticles.TryGetComponent<ParticleSystem>(out ParticleSystem rightPs))
+        {
+            rightPs.Play();
+            Destroy(rightParticles, rightPs.main.duration);
+        }
+    }
+
 
     public void OnResumeButtonClicked()
     {

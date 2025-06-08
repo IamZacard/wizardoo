@@ -13,7 +13,6 @@ GameObject:
   - component: {fileID: 8766650062611814656}
   - component: {fileID: 4093469946569933604}
   - component: {fileID: 3175373820212215009}
-  - component: {fileID: 5772924516956387425}
   m_Layer: 0
   m_Name: Gale_Mirror_Image
   m_TagString: GaleIllusion
@@ -182,23 +181,6 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
---- !u!114 &5772924516956387425
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4670117459594021562}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e38d593eac44856469417c42de55fee6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  gameRules: {fileID: 0}
-  effectPoint: {fileID: 786327018770038477}
-  flagEffect: {fileID: 5402626375564937643, guid: 74b1998c133c13147884618432744996, type: 3}
-  groundTileMap: {fileID: 0}
-  colissionTileMap: {fileID: 0}
 --- !u!1 &4858516540831861618
 GameObject:
   m_ObjectHideFlags: 0

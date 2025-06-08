@@ -87,7 +87,7 @@ public class GameStateManager : MonoBehaviour
         OnBeforeStateChange?.Invoke(oldState, newState);
 
         currentState = newState;
-        LogDebug($"State changed: {oldState} → {newState}");
+        LogDebug($"State changed: {oldState} -> {newState}");
 
         if (oldState == GameState.Playing)
             StopTimer();
@@ -172,7 +172,7 @@ public class GameStateManager : MonoBehaviour
     {
         int minutes = Mathf.FloorToInt(gameTime / 60f);
         int seconds = Mathf.FloorToInt(gameTime % 60f);
-        return $"{minutes:00}:{seconds:00}";
+        return minutes.ToString("00") + ":" + seconds.ToString("00");
     }
 
     private void LogDebug(string msg)
