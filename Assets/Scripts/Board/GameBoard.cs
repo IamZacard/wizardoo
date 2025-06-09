@@ -328,14 +328,83 @@ public class GameBoard : MonoBehaviour
         if (!isInitialized)
         {
             InitializeBoard();
+            return;
         }
 
         gameGrid.Reset();
         boardRenderer.DrawGrid();
+
+        ResetLevelObjects();
     }
     #endregion
 
     #region Reveal & Flood Fill
+
+    private void RevealCellLogic(Cell cell)
+    {
+        if (cell == null || cell.revealed || cell.type == Cell.CellType.Trap || cell.IsProtected || cell.flagged)
+            return;
+
+        if (cell.type == Cell.CellType.Empty)
+        {
+            StartCoroutine(StartFloodFill(cell));
+        }
+        else
+        {
+            cell.revealed = true;
+            boardRenderer.DrawCell(cell);
+            gameActions.OnCellRevealed?.Invoke(cell);
+            CheckWinCondition();
+        }
+    }
+
+    private IEnumerator StartFloodFill(Cell startCell)
+    {
+        isFloodFilling = true;
+        gameActions.OnFloodFillStarted?.Invoke();
+
+        HashSet<Cell> visited = new();
+        yield return FloodFillStep(startCell, visited);
+
+        isFloodFilling = false;
+        gameActions.OnFloodFillCompleted?.Invoke();
+        CheckWinCondition();
+    }
+    private IEnumerator FloodFillStep(Cell cell, HashSet<Cell> visited)
+    {
+        if (cell == null || cell.revealed || cell.type == Cell.CellType.Trap || cell.IsProtected || cell.flagged || visited.Contains(cell))
+            yield break;
+
+        visited.Add(cell);
+        cell.revealed = true;
+        boardRenderer.DrawCell(cell);
+        gameActions.OnCellRevealed?.Invoke(cell);
+
+        yield return new WaitForSeconds(revealAnimationDuration);
+
+        if (cell.type == Cell.CellType.Empty)
+        {
+            yield return FloodFillAdjacent(cell.position, visited);
+        }
+    }
+
+    private IEnumerator FloodFillAdjacent(Vector3Int position, HashSet<Cell> visited)
+    {
+        int[,] directions = useEightDirections
+            ? new int[,] { { -1, -1 }, { -1, 0 }, { -1, 1 }, { 0, -1 }, { 0, 1 }, { 1, -1 }, { 1, 0 }, { 1, 1 } }
+            : new int[,] { { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 } };
+
+        for (int i = 0; i < directions.GetLength(0); i++)
+        {
+            int dx = directions[i, 0];
+            int dy = directions[i, 1];
+            if (gameGrid.TryGetCell(position.x + dx, position.y + dy, out Cell adjacent))
+            {
+                yield return FloodFillStep(adjacent, visited);
+            }
+        }
+    }
+
     public void RevealCellsAroundPosition(Vector3Int centerCellPos, int radius)
     {
         if (gameGrid == null) return;
@@ -352,85 +421,6 @@ public class GameBoard : MonoBehaviour
                     cell.revealed = true;
                     boardRenderer.DrawCell(cell);
                     gameActions.OnCellRevealed?.Invoke(cell);
-                }
-            }
-        }
-    }
-
-    private void RevealCellLogic(Cell cell)
-    {
-        if (cell == null || cell.revealed || cell.type == Cell.CellType.Trap || cell.IsProtected || cell.flagged) return;
-
-        if (cell.type == Cell.CellType.Empty)
-        {
-            StartCoroutine(SmoothFloodFill(cell, new HashSet<Cell>()));
-        }
-        else
-        {
-            cell.revealed = true;
-            boardRenderer.DrawCell(cell);
-            gameActions.OnCellRevealed?.Invoke(cell);
-            CheckWinCondition();
-        }
-    }
-
-    private IEnumerator SmoothFloodFill(Cell startCell, HashSet<Cell> visited)
-    {
-        isFloodFilling = true;
-        gameActions.OnFloodFillStarted?.Invoke();
-
-        yield return StartCoroutine(Flood(startCell, visited));
-
-        isFloodFilling = false;
-        gameActions.OnFloodFillCompleted?.Invoke();
-
-        CheckWinCondition();
-    }
-
-    private IEnumerator Flood(Cell cell, HashSet<Cell> visited)
-    {
-        if (cell == null || cell.revealed || cell.type == Cell.CellType.Trap || cell.IsProtected || cell.flagged || visited.Contains(cell))
-            yield break;
-
-        visited.Add(cell);
-        cell.revealed = true;
-        boardRenderer.DrawCell(cell);
-        gameActions.OnCellRevealed?.Invoke(cell);
-
-        yield return new WaitForSeconds(revealAnimationDuration);
-
-        if (cell.type == Cell.CellType.Empty)
-        {
-            yield return StartCoroutine(FloodAdjacentCells(cell.position, visited));
-        }
-    }
-
-    private IEnumerator FloodAdjacentCells(Vector3Int position, HashSet<Cell> visited)
-    {
-        if (useEightDirections)
-        {
-            for (int dx = -1; dx <= 1; dx++)
-            {
-                for (int dy = -1; dy <= 1; dy++)
-                {
-                    if (dx == 0 && dy == 0) continue;
-                    if (gameGrid.TryGetCell(position.x + dx, position.y + dy, out Cell adjacent))
-                    {
-                        yield return StartCoroutine(Flood(adjacent, visited));
-                    }
-                }
-            }
-        }
-        else
-        {
-            int[,] directions = { { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 } };
-            for (int i = 0; i < 4; i++)
-            {
-                int x = position.x + directions[i, 0];
-                int y = position.y + directions[i, 1];
-                if (gameGrid.TryGetCell(x, y, out Cell adjacent))
-                {
-                    yield return StartCoroutine(Flood(adjacent, visited));
                 }
             }
         }
@@ -527,6 +517,15 @@ public class GameBoard : MonoBehaviour
 
     #region Utility
     public Cell GetCellAtWorldPosition(Vector3 worldPos) => boardRenderer.GetCellAtWorldPosition(worldPos);
+
+    private void ResetLevelObjects()
+    {
+        var barriers = FindObjectsOfType<MagicBarrier>();
+        foreach (var barrier in barriers)
+        {
+            barrier.ResetBarrier();
+        }
+    }
 
     public void RefreshVisuals()
     {

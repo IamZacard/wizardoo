@@ -12,9 +12,9 @@ GameObject:
   - component: {fileID: 1993561732663672700}
   - component: {fileID: 573176891673530773}
   - component: {fileID: 2117580163504303792}
-  - component: {fileID: 1803788056940336126}
   - component: {fileID: 3927087011314386064}
   - component: {fileID: 682354918195477872}
+  - component: {fileID: 8131207047458473645}
   m_Layer: 0
   m_Name: Portal
   m_TagString: Portal
@@ -161,23 +161,6 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 7
---- !u!114 &1803788056940336126
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3209485439443332986}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c0ac56344eb7f1346877c47885d8dca7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  rotationSpeedZ: 480
-  rotationSpeedXY: 90
-  elapsedTime: 0
-  totalDuration: 2
-  xyRotationStart: 1
 --- !u!95 &3927087011314386064
 Animator:
   serializedVersion: 5
@@ -249,3 +232,28 @@ MonoBehaviour:
   - {x: 0.5, y: -0.5, z: 0}
   - {x: 0.5, y: 0.5, z: 0}
   - {x: -0.5, y: 0.5, z: 0}
+--- !u!114 &8131207047458473645
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3209485439443332986}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 22c0e2a04ee9bd5498d068857543268e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  nextSceneName: 
+  characterLayerMask:
+    serializedVersion: 2
+    m_Bits: 128
+  teleportEffectPrefab: {fileID: 3209485439443332986}
+  ambientParticles: {fileID: 0}
+  teleportRenderer: {fileID: 1993561732663672700}
+  pulseSpeed: 2
+  pulseIntensity: 0.3
+  audioSource: {fileID: 0}
+  teleportSound: {fileID: 0}
+  ambientHum: {fileID: 0}
+  teleportDelay: 1

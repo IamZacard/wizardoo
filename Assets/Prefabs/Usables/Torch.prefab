@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 8248080004413711021}
   - component: {fileID: 463996290786748534}
   - component: {fileID: 9193652987008352226}
-  - component: {fileID: 5173556956770887724}
+  - component: {fileID: 346569601078115162}
   m_Layer: 0
   m_Name: Torch
   m_TagString: Untagged
@@ -186,7 +186,7 @@ MonoBehaviour:
   - {x: 0.5, y: -0.5, z: 0}
   - {x: 0.5, y: 0.5, z: 0}
   - {x: -0.5, y: 0.5, z: 0}
---- !u!114 &5173556956770887724
+--- !u!114 &346569601078115162
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -195,8 +195,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 5523241785815405090}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f4bd0b86b17aca640acc8fb7b79cdc2d, type: 3}
+  m_Script: {fileID: 11500000, guid: aa99e2ab959dfef48a5a87f9dcb61861, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   minIntensity: 0.1
-  maxIntensity: 0.5
+  maxIntensity: 0.8
+  flickerSpeed: 5
+  flickerAmount: 0.5
+  intensitySmoothSpeed: 10

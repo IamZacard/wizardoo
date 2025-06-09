@@ -1,7 +1,8 @@
 // SpellExecutor.cs
-using System.Linq;
-using UnityEngine;
 using System.Collections.Generic;
+using System.Linq;
+using UnityEditor.Experimental.GraphView;
+using UnityEngine;
 
 
 public static class SpellExecutor
@@ -33,6 +34,34 @@ public static class SpellExecutor
         foreach (SpellEffectBase effect in spellData.effects)
         {
             effect?.Execute(caster, targetCell);
+        }
+
+        // Execute all effects associated with the spell
+        foreach (SpellEffectBase effect in spellData.effects)
+        {
+            effect.Execute(caster, targetCell); // Pass the target cell for effects that need it
+        }
+      
+        if (spellData.visualEffect != null)
+        {
+            // Instantiate the visual effect. You might want to pool these for performance!
+            GameObject instantiatedEffect = GameObject.Instantiate(spellData.visualEffect);
+            // You might need to adjust this based on spell.targetType.
+            instantiatedEffect.transform.position = caster.transform.position;
+            ApplyEffectColor(instantiatedEffect, spellData.effectColor);
+            ParticleSystem ps = instantiatedEffect.GetComponent<ParticleSystem>();
+            if (ps != null)
+            {
+                ps.Play();
+                GameObject.Destroy(instantiatedEffect, ps.main.duration + ps.main.startLifetime.constantMax);
+            }
+            else
+            {
+                // If it's just a static visual, destroy it after a short time
+                GameObject.Destroy(instantiatedEffect, spellData.activeDuration > 0 ? spellData.activeDuration : 2f); // Or a default duration
+            }
+
+            Debug.Log($"Played visual effect for spell: {spellData.spellName}");
         }
 
         CharacterSpellManager.RaiseSpellCastSuccess(spellData, caster);
@@ -123,5 +152,22 @@ public static class SpellExecutor
             return effectPools[prefab].Dequeue();
 
         return Object.Instantiate(prefab);
+    }
+
+    private static void ApplyEffectColor(GameObject effect, Color color)
+    {
+        // This is a simple example. You might need to target specific renderers or particle systems.
+        SpriteRenderer sr = effect.GetComponent<SpriteRenderer>();
+        if (sr != null)
+        {
+            sr.color = color;
+        }
+
+        ParticleSystem ps = effect.GetComponent<ParticleSystem>();
+        if (ps != null)
+        {
+            var main = ps.main;
+            main.startColor = color;
+        }
     }
 }

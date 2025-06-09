@@ -21,6 +21,8 @@ public class BoardRenderer : MonoBehaviour
     [SerializeField] private float scaleUpFactor = 1.5f;
     [SerializeField] private float animationDuration = 0.15f;
 
+    private static Dictionary<string, GameObject[]> taggedObjectCache = new();
+
     private List<GameObject> effectPool = new();
     private Tilemap tilemap;
     private TilemapRenderer tilemapRenderer;
@@ -40,6 +42,28 @@ public class BoardRenderer : MonoBehaviour
         SetupStaticObjects();
     }
 
+    private void OnDestroy()
+    {
+        foreach (var effect in effectPool)
+        {
+            if (effect != null) DestroyImmediate(effect);
+        }
+        effectPool.Clear();
+
+        foreach (var cache in taggedObjectCache.Values)
+        {
+            // Clear references
+        }
+        taggedObjectCache.Clear();
+    }
+
+    private void Start()
+    {
+        // Pre-cache all tagged objects once
+        taggedObjectCache["Pillar"] = GameObject.FindGameObjectsWithTag("Pillar");
+        taggedObjectCache["Shrine"] = GameObject.FindGameObjectsWithTag("Shrine");
+    }
+
     private void SetupStaticObjects()
     {
         SetupObjectsWithTag("Pillar", Cell.CellType.Pillar);
@@ -48,8 +72,9 @@ public class BoardRenderer : MonoBehaviour
 
     private void SetupObjectsWithTag(string tag, Cell.CellType cellType)
     {
-        GameObject[] taggedObjects = GameObject.FindGameObjectsWithTag(tag);
-        foreach (var obj in taggedObjects)
+        if (!taggedObjectCache.ContainsKey(tag))
+            taggedObjectCache[tag] = GameObject.FindGameObjectsWithTag(tag);
+        foreach (var obj in taggedObjectCache[tag])
         {
             Vector3Int pos = tilemap.WorldToCell(obj.transform.position);
             if (gameGrid.IsValidPosition(pos.x, pos.y))
@@ -59,21 +84,35 @@ public class BoardRenderer : MonoBehaviour
 
     public void DrawGrid()
     {
-        if (gameGrid == null || tilemap == null)
-        {
-            Debug.LogError("Cannot draw grid: GameGrid or Tilemap is null.");
-            return;
-        }
+        StartCoroutine(DrawGridAsync());
+    }
 
-        for (int x = 0; x < gameGrid.Width; x++)
+    public IEnumerator DrawGridAsync()
+    {
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        const int maxMilliseconds = 16; // ~60fps budget
+
+        // Use SetTilesBlock for better performance
+        BoundsInt area = new BoundsInt(0, 0, 0, gameGrid.Width, gameGrid.Height, 1);
+        TileBase[] tileArray = new TileBase[area.size.x * area.size.y];
+
+        int index = 0;
+        for (int y = 0; y < gameGrid.Height; y++)
         {
-            for (int y = 0; y < gameGrid.Height; y++)
+            for (int x = 0; x < gameGrid.Width; x++)
             {
                 var cell = gameGrid[x, y];
-                if (cell != null)
-                    DrawCell(cell);
+                tileArray[index++] = cell?.IsProtected == true ? null : GetTileForCell(cell);
+
+                if (stopwatch.ElapsedMilliseconds > maxMilliseconds)
+                {
+                    yield return null;
+                    stopwatch.Restart();
+                }
             }
         }
+
+        tilemap.SetTilesBlock(area, tileArray);
     }
 
     public void DrawCell(Cell cell)
